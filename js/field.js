@@ -246,7 +246,9 @@ class FieldScene {
     sprites.sort((a, b) => a.y - b.y).forEach(s => s.draw());
     if (m.type === 'town') for (const n of this.npcs) if (n.shop) {
       const label = { inn: 'INN', items: 'ITEMS', weapons: 'WEAPONS', armor: 'ARMOR' }[n.role];
-      txt(label, n.x * 16 + 8 - cx, (n.y - 1) * 16 + 5 - cy, '#ffe080', 'center');
+      const lw = textW(label) + 6, lx = n.x * 16 + 8 - cx, ly = (n.y - 1) * 16 + 4 - cy;
+      ctx.fillStyle = 'rgba(20,16,40,0.85)'; ctx.fillRect(lx - lw / 2, ly - 2, lw, 12);
+      txt(label, lx, ly, '#ffe080', 'center');
     }
     if (m.type === 'world') this.drawMiniHud();
     if (this.banner && this.banner.t > 0 && this.banner.text) {

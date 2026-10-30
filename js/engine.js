@@ -328,9 +328,8 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 function fit() {
-  const touch = document.getElementById('touch');
-  const th = touch && getComputedStyle(touch).display !== 'none' ? touch.offsetHeight : 0;
-  const s = Math.min(innerWidth / SW, (innerHeight - th) / SH);
+  const wrap = document.getElementById('wrap');
+  const s = Math.max(0.5, Math.min(wrap.clientWidth / SW, wrap.clientHeight / SH));
   canvas.style.width = Math.floor(SW * s) + 'px'; canvas.style.height = Math.floor(SH * s) + 'px';
 }
 addEventListener('resize', fit);

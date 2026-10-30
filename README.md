@@ -11,6 +11,8 @@ web browser, on desktop or phone, with nothing to install.
 ## Play
 
 - **Desktop:** open `index.html` in a browser (double-click works, no server needed).
+- **One file to share:** `node tools/bundle.js` writes `dist/first-fantasy.html`. That single file
+  holds the whole game, including any portraits, voices and stills you've added, so you can send it to friends.
 - **Phone / share with friends:** enable GitHub Pages for this repo (Settings → Pages → deploy from
   branch) and open the published URL. On-screen D-pad and A/B buttons appear on touch screens.
 
@@ -111,6 +113,7 @@ js/ui.js              dialogue boxes, choices, shops, cutscene backdrops
 js/state.js           party, stats, inventory, saves
 js/data/*.js          cast, config, story, rules (jobs/skills/items/gear), enemies, world, music
 tools/*.sh            ffmpeg helpers to pull portraits, voices, stills and music from the movie
+tools/bundle.js       packs the game and its assets into a single shareable HTML file
 tests/                balance simulator, world/dungeon connectivity checks, browser flow tests
 ```
 

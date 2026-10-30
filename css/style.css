@@ -1,9 +1,9 @@
 html, body { margin: 0; height: 100%; background: #000; overflow: hidden; touch-action: none; }
 body { display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: "Press Start 2P", monospace; color: #889; }
-#wrap { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; }
+#wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%; overflow: hidden; }
 canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
 #help { font-size: 8px; padding: 6px; text-align: center; }
-#touch { display: none; width: 100%; max-width: 520px; height: 170px; position: relative; user-select: none; -webkit-user-select: none; }
+#touch { display: none; flex: none; width: 100%; max-width: 520px; height: 170px; position: relative; user-select: none; -webkit-user-select: none; }
 #touch button { position: absolute; background: rgba(60, 70, 140, 0.55); color: #dde; border: 2px solid #aab; border-radius: 10px;
   font: 14px "Press Start 2P", monospace; touch-action: none; -webkit-tap-highlight-color: transparent; }
 #touch button.on { background: rgba(140, 150, 230, 0.8); }
@@ -13,6 +13,6 @@ canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: bloc
 .dpad .left { left: 0; top: 50px; width: 50px; height: 50px; }
 .dpad .right { left: 100px; top: 50px; width: 50px; height: 50px; }
 .ab { position: absolute; right: 16px; top: 30px; width: 160px; height: 110px; }
-.ab .a { right: 0; top: 0; width: 68px; height: 68px; border-radius: 50%; }
-.ab .b { left: 0; top: 40px; width: 68px; height: 68px; border-radius: 50%; }
+#touch .ab .a { right: 0; top: 0; width: 68px; height: 68px; border-radius: 50%; }
+#touch .ab .b { left: 0; top: 40px; width: 68px; height: 68px; border-radius: 50%; }
 @media (pointer: coarse) { #touch { display: block; } #help { display: none; } }

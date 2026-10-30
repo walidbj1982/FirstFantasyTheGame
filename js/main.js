@@ -22,6 +22,10 @@ setInterval(() => { if (S && !document.hidden) S.time += 60; }, 1000);
   for (const c of Object.values(CAST)) Img.get(c.portrait);
   for (const p of Object.values(CONFIG.scenes || {})) Img.get(p);
   try { await document.fonts.load('8px "Press Start 2P"'); } catch (e) { /* offline: fallback font */ }
-  Scenes.push(new TitleScene());
+  // When embedded in a viewer that hot-reloads the page, carry the party over the reload.
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(() => (S && Ev.field && S.pos ? { S } : {}));
+  const start = data => { if (data && data.S) startFromState(data.S); else Scenes.push(new TitleScene()); };
+  if (hot && hot.ready) hot.ready(start); else start(hot && hot.data);
   requestAnimationFrame(loop);
 })();
