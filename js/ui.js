@@ -14,7 +14,9 @@ class DialogScene {
   enter() {
     const clip = this.clip || (this.cast && this.cast.clips && this.cast.clips._next);
     this.hasClip = clip ? Sound.clip(clip) : false;
+    if (Ev._bd && typeof this.who === 'string') Ev._bd.speak(this.who);
   }
+  exit() { if (Ev._bd) Ev._bd.speak(null); }
   update() {
     const speed = [0.6, 1, 2, 4][S ? S.config.textSpeed : 2] || 2;
     const total = this.text.length;
@@ -93,20 +95,32 @@ class ListBox {
 }
 
 // ------------------------------------------------------------ cutscene backdrop
+const SCENE_STAGE = { intro: 'night', festival: 'night', woods: 'woods', boss1: 'woods', port: 'grass', boss2: 'cave', snow: 'snow', boss3: 'ice',
+  desert: 'desert', boss4: 'ruins', rift: 'rift', final1: 'rift', final2: 'rift', ending: 'day' };
 class BackdropScene {
   constructor(key, caption) { this.key = key; this.caption = caption; this.opaque = true; this.t = 0; }
   update() { this.t++; }
+  // characters step onto the cutscene stage the first time they speak
+  speak(id) {
+    if (!this.view && R3.ok && !Img.get(CONFIG.scenes && CONFIG.scenes[this.key])) this.view = new StageView(SCENE_STAGE[this.key] || 'grass');
+    if (!this.view) return;
+    if (id && CAST[id]) this.view.addActor(id);
+    this.view.speaker = id;
+  }
   draw() {
     const path = CONFIG.scenes && CONFIG.scenes[this.key];
     const img = Img.get(path);
-    if (img) {
+    if (!img && R3.ok) {
+      if (!this.view) this.speak(null);
+      this.view.draw();
+    } else if (img) {
       const s = Math.max(SW / img.naturalWidth, SH / img.naturalHeight);
       const w = img.naturalWidth * s, h = img.naturalHeight * s;
       ctx.save(); ctx.imageSmoothingEnabled = true;
       ctx.drawImage(img, (SW - w) / 2, (SH - h) / 2, w, h); ctx.restore();
     } else drawSkyBackdrop(this.key, this.t);
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, SW, 14); ctx.fillRect(0, SH - 14, SW, 14);
-    if (this.caption) txt(this.caption, SW / 2, 3, '#ffe080', 'center');
+    if (this.caption) txt(this.caption, SW / 2, 2, '#ffe080', 'center', 10);
   }
 }
 const BACKDROPS = {
@@ -138,8 +152,8 @@ class TitleCardScene {
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, SW, SH);
     const al = Math.min(1, this.t / 40, (200 - this.t) / 30);
     ctx.globalAlpha = Math.max(0, al);
-    txt(this.a, SW / 2, 96, '#ffe080', 'center');
-    txt(this.b, SW / 2, 120, '#fff', 'center', 8);
+    txt(this.a, SW / 2, 92, '#ffe080', 'center', 12, DISPLAY_FONT);
+    txt(this.b, SW / 2, 112, '#fff', 'center', 20, DISPLAY_FONT);
     ctx.globalAlpha = 1;
   }
 }

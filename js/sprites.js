@@ -105,11 +105,11 @@ function genFace(look) {
 }
 function portraitOf(id) {
   const c = CAST[id]; if (!c) return null;
-  return Img.get(c.portrait) || genFace(c.look);
+  return Img.get(c.portrait) || (typeof Portraits !== 'undefined' && Portraits.get(id)) || genFace(c.look);
 }
 function drawPortrait(id, x, y, size) {
   const p = portraitOf(id); if (!p) return;
-  ctx.save(); ctx.imageSmoothingEnabled = !!(CAST[id] && Img.get(CAST[id].portrait));
+  ctx.save(); ctx.imageSmoothingEnabled = !!(CAST[id] && (Img.get(CAST[id].portrait) || R3.ok));
   const sw = p.width || p.naturalWidth, sh = p.height || p.naturalHeight, s = Math.min(sw, sh);
   ctx.drawImage(p, (sw - s) / 2, (sh - s) / 2, s, s, x, y, size, size);
   ctx.restore();

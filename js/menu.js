@@ -297,16 +297,23 @@ class TitleScene {
     else { Sound.play('confirm'); Scenes.push(new CastScene()); }
   }
   draw() {
-    drawSkyBackdrop('intro', this.t);
-    const heroes = ['hero1', 'hero2', 'hero3', 'hero4'];
-    heroes.forEach((id, i) => ctx.drawImage(charSprite(CAST[id].look, 'down', Math.floor(this.t / 12 + i) % 4), 88 + i * 40, 128, 32, 32));
-    ctx.save(); ctx.globalAlpha = 0.35;
-    ctx.drawImage(charSprite(CAST.villain1.look, 'down', 0), 112, 6, 96, 96); ctx.restore();
-    txt(CONFIG.title, SW / 2, 62, '#ffe080', 'center', 16);
-    txt(CONFIG.subtitle || '', SW / 2, 86, '#ffffff', 'center');
-    this.opts.forEach((o, i) => txt(o, 120, 174 + i * 15, i === 1 && !anySave() ? '#808090' : '#fff'));
-    cursor(104, 174 + this.i * 15);
-    txt(CONFIG.credits || '', SW / 2, 226, '#c0c0d0', 'center');
+    if (R3.ok) {
+      if (!this.view) {
+        this.view = new StageView('night');
+        for (const id of ['hero1', 'hero2', 'hero3', 'hero4']) this.view.addActor(id);
+        this.view.addActor('villain1');
+        const v = this.view.actors.find(a => a.id === 'villain1').m; v.scale.setScalar(3.4); v.position.set(2.6, 0, -9); v.rotation.y = 0; this.view.focusX = 2.6;
+      }
+      this.view.draw();
+    } else drawSkyBackdrop('intro', this.t);
+    const g = ctx.createLinearGradient(0, 0, 0, SH); g.addColorStop(0, 'rgba(0,0,20,0.55)'); g.addColorStop(0.45, 'rgba(0,0,20,0)'); g.addColorStop(0.7, 'rgba(0,0,20,0)'); g.addColorStop(1, 'rgba(0,0,20,0.75)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH);
+    txt(CONFIG.title, SW / 2, 22, '#f4e2a0', 'center', 30, DISPLAY_FONT);
+    txt(CONFIG.subtitle || '', SW / 2, 58, '#ffffff', 'center', 12, DISPLAY_FONT);
+    win(110, 166, 100, 54);
+    this.opts.forEach((o, i) => txt(o, 132, 172 + i * 15, i === 1 && !anySave() ? '#808090' : '#fff'));
+    cursor(116, 172 + this.i * 15);
+    txt(CONFIG.credits || '', SW / 2, 226, '#c0c0d0', 'center', 9);
   }
 }
 class CastScene {
@@ -320,16 +327,21 @@ class CastScene {
   }
   draw() {
     const id = this.ids[this.i], c = CAST[id];
-    drawSkyBackdrop(id.startsWith('villain') ? 'final1' : 'festival', G.frame);
-    win(10, 10, 300, 220);
-    txt('CAST  ' + (this.i + 1) + '/' + this.ids.length, 20, 20, '#a0c0ff');
-    drawPortrait(id, 24, 40, 80);
-    ctx.drawImage(charSprite(c.look, 'down', Math.floor(G.frame / 12) % 4), 120, 70, 48, 48);
-    ctx.drawImage(charSprite(c.look, 'left', 0, 'attack'), 180, 70, 48, 48);
-    txt(c.name, 24, 132, '#ffe080', 'left', 16);
-    txt(c.title || '', 24, 154, '#c0c0d0');
-    txt('Played by ' + (c.actor || '?'), 24, 168);
-    wrap(c.bio || '', 270).slice(0, 3).forEach((l, i) => txt(l, 24, 186 + i * 12, '#c0c0d0'));
-    txt('< >  A: voice   B: back', 300, 20, '#808090', 'right');
+    if (R3.ok) {
+      if (!this.view || this.view.id !== id) {
+        this.view = new StageView(id.startsWith('villain') ? 'rift' : 'grass'); this.view.id = id;
+        this.view.addActor(id); const a = this.view.actors[0].m; a.position.set(0, 0, 2.5); this.view.focusX = 1.9;
+      }
+      this.view.actors[0].m.rotation.y = G.frame * 0.015; this.view.speaker = id;
+      this.view.draw(false);
+    } else drawSkyBackdrop(id.startsWith('villain') ? 'final1' : 'festival', G.frame);
+    win(150, 10, 160, 220);
+    txt('CAST  ' + (this.i + 1) + '/' + this.ids.length, 160, 18, '#a0c0ff', 'left', 9);
+    drawPortrait(id, 160, 34, 64);
+    txt(c.name, 160, 106, '#ffe080', 'left', 18, DISPLAY_FONT);
+    txt(c.title || '', 160, 130, '#c0c0d0');
+    txt('Played by ' + (c.actor || '?'), 160, 144);
+    wrap(c.bio || '', 140).slice(0, 4).forEach((l, i) => txt(l, 160, 164 + i * 13, '#c0c0d0'));
+    txt('< >  A: voice   B: back', 302, 18, '#808090', 'right', 9);
   }
 }

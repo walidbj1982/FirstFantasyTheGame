@@ -49,6 +49,7 @@ class BattleScene {
       list.forEach((e, i) => { e.cx = slots[i][0]; e.cy = slots[i][1]; });
     }
     this.heroes.forEach((h, i) => { h.cx = 258 + i * 8; h.cy = 46 + i * 30; });
+    for (const b of [...list, ...this.heroes]) { b.sx = b.cx; b.sy = b.cy; }
   }
   get aliveHeroes() { return this.heroes.filter(h => h.hp > 0); }
   get aliveEnemies() { return this.enemies.filter(e => !e.dead); }
@@ -222,8 +223,9 @@ class BattleScene {
     if ((a.isEnemy && a.dead) || (!a.isEnemy && a.hp <= 0) || this.state !== 'main') return;
     if (a.status.sleep) { a.atb = 0; return; }
     if (!this.aliveHeroes.length || !this.aliveEnemies.length) return;
-    this.busy = true;
+    this.busy = true; this.acting = a;
     try { await this.perform(act); } catch (err) { console.error(err); }
+    this.acting = null; this.bursting = false;
     a.atb = 0;
     if (!a.isEnemy) a.burst = Math.min(100, a.burst + 3);
     this.tickStatus(a);
@@ -380,7 +382,7 @@ class BattleScene {
   }
   async performBurst(act) {
     const a = act.actor, c = CAST[a.id];
-    a.burst = 0;
+    a.burst = 0; this.bursting = true;
     this.say(c.burstName || 'Burst', 80);
     Sound.clip((c.clips || {}).burst); Sound.play('burst'); G.flash = 12;
     await this.approach(a, 'cast'); await sleep(20);
@@ -475,6 +477,7 @@ class BattleScene {
 
   // ------------------------------------------------------------ drawing
   draw() {
+    if (R3.ok) { (this.view || (this.view = new BattleView(this))).draw(); this.drawOverlay(); return; }
     drawBattleBg(this.bg, this.opts.scene, this.t);
     const intro = Math.min(1, this.t / 30);
     // enemies
@@ -517,11 +520,14 @@ class BattleScene {
       if (h.status.sleep && h.hp > 0) txt('z', x + 10, y - 20 - (this.t / 4 % 8), '#a0a0ff');
       if (h.status.poison && h.hp > 0) { ctx.fillStyle = '#c060ff'; ctx.fillRect(x - 14, y - 18, 3, 3); }
     }
+    this.drawOverlay();
+  }
+  drawOverlay() {
     for (const f of this.fx) drawFx(f);
     for (const p of this.pops) {
       const k = p.t < 10 ? -Math.sin(p.t / 10 * Math.PI) * 10 : 0;
       ctx.globalAlpha = p.t > 40 ? (50 - p.t) / 10 : 1;
-      txt(p.v, p.x, p.y + k - 4, p.col, 'center', p.big ? 16 : 8);
+      txt(p.v, p.x, p.y + k - 4, p.col, 'center', p.big ? 18 : 12);
       ctx.globalAlpha = 1;
     }
     if (this.banner && this.t < this.banner.until) { const w = textW(this.banner.text) + 24; win(SW / 2 - w / 2, 4, w, 20); txt(this.banner.text, SW / 2, 10, '#fff', 'center'); }
@@ -529,8 +535,8 @@ class BattleScene {
     if (this.menu) this.drawMenu();
     if (this.state === 'victory' && this.victoryPages && this.vp < this.victoryPages.length) {
       const lines = this.victoryPages[this.vp];
-      win(40, 40, 240, lines.length * 14 + 16);
-      lines.forEach((l, i) => txt(l, SW / 2, 48 + i * 14, i === 0 ? '#ffe080' : '#fff', 'center'));
+      win(50, 4, 220, lines.length * 13 + 12);
+      lines.forEach((l, i) => txt(l, SW / 2, 10 + i * 13, i === 0 ? '#ffe080' : '#fff', 'center'));
     }
     if (this.state === 'defeat') { win(60, 80, 200, 30); txt('The party has fallen...', SW / 2, 91, '#ff8080', 'center'); }
   }
@@ -612,6 +618,70 @@ function calcDamage(a, t, s, battle, noMiss) {
 }
 
 // ------------------------------------------------------------ backgrounds & effects
+// ------------------------------------------------------------ 3D battle view
+class BattleView {
+  constructor(b) {
+    this.b = b; this.scene = buildStage(b.bg, b.enemies.length);
+    const still = b.opts.scene && Img.get(CONFIG.scenes[b.opts.scene]);
+    if (still) { const tex = new THREE.Texture(still); tex.needsUpdate = true; this.scene.background = tex; this.scene.children[0].visible = false; this.scene.fog = null; }
+    this.cam = stageCamera(); this.ang = 3.2; this.rad = 6; this.hgt = 6; this.look = new THREE.Vector3(-0.5, 0.9, 0);
+    this.cam.setViewOffset(SW, SH, 0, 40, SW, SH); // centre the action above the command panel
+  }
+  model(x) {
+    if (x.model) return x.model;
+    let m;
+    if (!x.isEnemy) m = buildCharacter(x.look, x.id, x.job);
+    else if (x.kind === 'human') { m = buildCharacter(CAST[x.cast].look, x.cast, null); m.scale.setScalar(x.size / 2); }
+    else { m = buildMonster(x.kind, x.pal); m.scale.setScalar(x.size / 2); }
+    m.userData.base = m.scale.x;
+    this.scene.add(m); return (x.model = m);
+  }
+  draw() {
+    const b = this.b, t = b.t;
+    b.heroes.forEach((h, i) => {
+      const m = this.model(h);
+      const n = b.heroes.length;
+      m.position.set(-1.6 * (n - 1) / 2 + i * 1.6 + 0.6, 0, 3.0 + i * 0.25 + h.ox * 0.08);
+      m.rotation.y = Math.PI;
+      let pose = h.hp <= 0 ? 'ko' : b.state === 'victory' ? 'victory' : h.pose || (h.flash > 0 ? 'hurt' : (h.hp < h.maxhp / 4 || h.status.sleep) ? 'kneel' : 'idle');
+      poseCharacter(m, pose, pose === 'attack' ? (t % 30) : t + i * 13);
+      if (h.hp <= 0) m.position.y = 0.25;
+      this.anchor(h, m, 1.1);
+    });
+    for (const e of b.enemies) {
+      const m = this.model(e);
+      if (e.alpha <= 0) { m.visible = false; continue; }
+      const x3 = (e.sy - 92) / 19, z3 = -1.6 - (160 - e.sx) / 34;
+      m.position.set(x3, 0, z3 + (e.flash > 0 ? 0.3 : 0)); m.rotation.y = 0;
+      m.visible = !(e.flash > 0 && e.flash % 4 < 2);
+      if (e.dead) { const a = Math.max(0, e.alpha); m.scale.set(m.userData.base * (1 + (1 - a) * 0.3), m.userData.base * a, m.userData.base * (1 + (1 - a) * 0.3)); }
+      if (e.kind === 'human') poseCharacter(m, e.flash > 0 ? 'attack' : 'idle', e.flash > 0 ? 15 : t);
+      else animateMonster(m, t, e.flash > 0);
+      this.anchor(e, m, m.userData.h * 0.5);
+    }
+    // camera: spin-in at the start, nudges toward whoever acts, swings round for the victory pose
+    let ang = 0.5, rad = 13.5, hgt = 5.4, look = [0, 0.7, -0.6];
+    if (b.state === 'intro' || b.t < 70) { const k = Math.min(1, b.t / 70), e = 1 - Math.pow(1 - k, 3); ang = 0.5 + 2.7 * (1 - e); rad = 7 + 5.5 * e; hgt = 7 - 2 * e; }
+    else if (b.state === 'victory') { ang = 2.95; rad = 9.5; hgt = 2.6; look = [0.6, 1.9, 3.0]; }
+    else if (b.busy && b.acting) {
+      const a = b.acting, ax = a.model ? a.model.position.x : 0;
+      if (a.isEnemy) { ang = -0.3; rad = 11.5; look = [ax * 0.5, 0.9, -1]; }
+      else { ang = 0.65; rad = 10.5; hgt = 4.2; look = [ax * 0.4, 0.9, 0.5]; }
+      if (b.bursting) { ang = 0.4 + Math.sin(t * 0.02) * 1.1; rad = 9.5; }
+    } else ang += Math.sin(t * 0.004) * 0.12;
+    const k = b.t < 70 ? 1 : 0.06;
+    this.ang += (ang - this.ang) * k; this.rad += (rad - this.rad) * k; this.hgt += (hgt - this.hgt) * k;
+    this.look.lerp(new THREE.Vector3(...look), k);
+    this.cam.position.set(Math.sin(this.ang) * this.rad + this.look.x * 0.3, this.hgt, Math.cos(this.ang) * this.rad + this.look.z * 0.3);
+    this.cam.lookAt(this.look);
+    R3.render(this.scene, this.cam);
+  }
+  anchor(x, m, h) {
+    const [px, py] = R3.project(new THREE.Vector3(m.position.x, h * (m.userData.base || 1) * (x.isEnemy ? 1 : 1), m.position.z), this.cam);
+    x.cx = px; x.cy = py;
+  }
+}
+
 const BATTLE_BG = {
   grass: ['#5a90e0', '#a0d0f0', '#4a9a3a', '#3a7a2a'], woods: ['#1a3a2a', '#2a5a3a', '#2a5a22', '#1a4012'],
   cave: ['#0a1018', '#1a2a3a', '#3a4a5a', '#2a3440'], snow: ['#8090c0', '#d0e0f8', '#e8eef8', '#c0d0e8'],

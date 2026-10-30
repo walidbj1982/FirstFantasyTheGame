@@ -227,6 +227,7 @@ class FieldScene {
   }
   draw() {
     const m = this.map; if (!m) return;
+    if (R3.ok) return this.draw3d();
     const [cx, cy] = this.camera(), af = Math.floor(G.frame / 30);
     const theme = m.theme || null;
     ctx.fillStyle = m.type === 'dungeon' ? m.theme.top : '#000'; ctx.fillRect(0, 0, SW, SH);
@@ -254,6 +255,21 @@ class FieldScene {
     if (this.banner && this.banner.t > 0 && this.banner.text) {
       ctx.globalAlpha = Math.min(1, this.banner.t / 20);
       const w = textW(this.banner.text) + 24; win(SW / 2 - w / 2, 10, w, 22); txt(this.banner.text, SW / 2, 17, '#fff', 'center');
+      ctx.globalAlpha = 1;
+    }
+  }
+  draw3d() {
+    const m = this.map;
+    Field3D.draw(this);
+    if (m.type === 'town') for (const n of this.npcs) if (n.shop) {
+      const label = { inn: 'INN', items: 'ITEMS', weapons: 'WEAPONS', armor: 'ARMOR' }[n.role];
+      const [lx, ly, z] = Field3D.screenOf(n.x, n.y, 1.25); if (z > 1) continue;
+      const lw = textW(label, 9) + 8; win(lx - lw / 2, ly - 7, lw, 14); txt(label, lx, ly - 4, '#ffe080', 'center', 9);
+    }
+    if (m.type === 'world') this.drawMiniHud();
+    if (this.banner && this.banner.t > 0 && this.banner.text) {
+      ctx.globalAlpha = Math.min(1, this.banner.t / 20);
+      const w = textW(this.banner.text, 12) + 28; win(SW / 2 - w / 2, 10, w, 24); txt(this.banner.text, SW / 2, 16, '#fff', 'center', 12);
       ctx.globalAlpha = 1;
     }
   }

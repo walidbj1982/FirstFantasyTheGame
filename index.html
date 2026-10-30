@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>First Fantasy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600&family=Cinzel:wght@700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="wrap"><canvas id="game"></canvas></div>
+<div id="wrap"><div id="screen"><canvas id="gl"></canvas><canvas id="game"></canvas></div></div>
 <div id="touch">
   <div class="dpad">
     <button data-btn="up" class="up">&#9650;</button>
@@ -24,10 +24,12 @@
 </div>
 <div id="help">Arrows/WASD move &middot; Z/Enter = A (confirm, talk) &middot; X/Esc = B (cancel, menu)</div>
 
+<script src="js/vendor/three.min.js"></script>
 <script src="js/data/config.js"></script>
 <script src="js/data/cast.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/sprites.js"></script>
+<script src="js/render3d.js"></script>
 <script src="js/data/music.js"></script>
 <script src="js/data/rules.js"></script>
 <script src="js/data/enemies.js"></script>

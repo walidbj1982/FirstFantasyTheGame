@@ -2,7 +2,8 @@
 'use strict';
 
 const SW = 320, SH = 240, SCALE = 3;
-const FONT = '"Press Start 2P", "Courier New", monospace';
+const FONT = '"Barlow", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+const DISPLAY_FONT = '"Cinzel", "Times New Roman", serif';
 
 const canvas = document.getElementById('game');
 canvas.width = SW * SCALE; canvas.height = SH * SCALE;
@@ -235,13 +236,13 @@ const Music = {
 };
 
 // ---------------------------------------------------------------- drawing
-function txt(s, x, y, col = '#fff', align = 'left', size = 8) {
-  ctx.font = size + 'px ' + FONT; ctx.textAlign = align; ctx.textBaseline = 'top';
-  ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillText(s, x + 1, y + 1);
+function txt(s, x, y, col = '#fff', align = 'left', size = 10, fam = FONT) {
+  ctx.font = `600 ${size}px ${fam}`; ctx.textAlign = align; ctx.textBaseline = 'top';
+  ctx.fillStyle = 'rgba(0,0,10,0.85)'; ctx.fillText(s, x + 0.7, y + 0.7);
   ctx.fillStyle = col; ctx.fillText(s, x, y);
 }
-function textW(s, size = 8) { ctx.font = size + 'px ' + FONT; return ctx.measureText(s).width; }
-function wrap(s, maxW, size = 8) {
+function textW(s, size = 10, fam = FONT) { ctx.font = `600 ${size}px ${fam}`; return ctx.measureText(s).width; }
+function wrap(s, maxW, size = 10) {
   const lines = [];
   for (const para of String(s).split('\n')) {
     let line = '';
@@ -253,20 +254,28 @@ function wrap(s, maxW, size = 8) {
   }
   return lines;
 }
+function rrect(x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
+}
+// Menu window: diagonal blue gradient with a bevelled silver frame (late-90s console RPG style).
 function win(x, y, w, h, alpha = 1) {
   ctx.save(); ctx.globalAlpha = alpha;
-  const g = ctx.createLinearGradient(0, y, 0, y + h);
-  g.addColorStop(0, '#2a3a9a'); g.addColorStop(1, '#0c1450');
-  ctx.fillStyle = g; ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-  ctx.strokeStyle = '#c8c8d8'; ctx.lineWidth = 1; ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
-  ctx.strokeStyle = '#ffffff'; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  const g = ctx.createLinearGradient(x, y, x + w * 0.6, y + h * 1.4);
+  g.addColorStop(0, '#2c5ad0'); g.addColorStop(0.55, '#14287e'); g.addColorStop(1, '#060c38');
+  rrect(x + 1, y + 1, w - 2, h - 2, 3); ctx.fillStyle = g; ctx.fill();
+  ctx.lineWidth = 1.2; ctx.strokeStyle = '#d8dce8'; rrect(x + 1, y + 1, w - 2, h - 2, 3); ctx.stroke();
+  ctx.lineWidth = 0.6; ctx.strokeStyle = '#6a7090'; rrect(x + 2.4, y + 2.4, w - 4.8, h - 4.8, 2); ctx.stroke();
   ctx.restore();
 }
+// pointing-hand cursor
 function cursor(x, y) {
-  const o = Math.sin(G.frame / 6) * 1.5;
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.moveTo(x + o, y); ctx.lineTo(x + 7 + o, y + 4); ctx.lineTo(x + o, y + 8); ctx.fill();
-  ctx.strokeStyle = '#222'; ctx.stroke();
+  const o = Math.sin(G.frame / 6) * 1.2 + x, yy = y + 1;
+  ctx.save(); ctx.lineWidth = 0.8; ctx.strokeStyle = '#202030'; ctx.fillStyle = '#f4f4f8';
+  ctx.beginPath(); ctx.moveTo(o, yy + 2); ctx.lineTo(o + 6, yy + 2); ctx.lineTo(o + 10, yy + 1); ctx.lineTo(o + 11, yy + 3);
+  ctx.lineTo(o + 7, yy + 4); ctx.lineTo(o + 7, yy + 8); ctx.lineTo(o + 1, yy + 8); ctx.lineTo(o, yy + 6); ctx.closePath();
+  ctx.fill(); ctx.stroke(); ctx.restore();
 }
 function bar(x, y, w, h, frac, col, bg = '#222') {
   ctx.fillStyle = bg; ctx.fillRect(x, y, w, h);
@@ -308,13 +317,15 @@ function step() {
   if (G.flash > 0) G.flash--;
 }
 function render() {
+  R3.beginFrame();
+  ctx.clearRect(0, 0, SW, SH);
   ctx.save();
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, SW, SH);
   if (G.shake > 0) ctx.translate(randi(-3, 3), randi(-2, 2));
   const st = Scenes.stack; let from = 0;
   for (let i = st.length - 1; i >= 0; i--) if (st[i].opaque) { from = i; break; }
   for (let i = from; i < st.length; i++) st[i].draw && st[i].draw();
   ctx.restore();
+  R3.endFrame();
   if (G.flash > 0) { ctx.fillStyle = `rgba(255,255,255,${G.flash / 12})`; ctx.fillRect(0, 0, SW, SH); }
   if (G.fade > 0) { ctx.fillStyle = `rgba(0,0,0,${G.fade})`; ctx.fillRect(0, 0, SW, SH); }
 }
@@ -328,8 +339,8 @@ function loop(t) {
   requestAnimationFrame(loop);
 }
 function fit() {
-  const wrap = document.getElementById('wrap');
+  const wrap = document.getElementById('wrap'), screen = document.getElementById('screen');
   const s = Math.max(0.5, Math.min(wrap.clientWidth / SW, wrap.clientHeight / SH));
-  canvas.style.width = Math.floor(SW * s) + 'px'; canvas.style.height = Math.floor(SH * s) + 'px';
+  screen.style.width = Math.floor(SW * s) + 'px'; screen.style.height = Math.floor(SH * s) + 'px';
 }
 addEventListener('resize', fit);

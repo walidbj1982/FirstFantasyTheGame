@@ -27,6 +27,12 @@ The game saves to the browser (3 slots). Save on the world map, at blue crystals
 
 ## What's in the game
 
+- **Late-90s 3D style:** low-poly characters with chunky limbs and textured faces, real-time
+  3D battles with a camera that spins in and follows the action, a 3D world map, towns and
+  dungeons. The 3D is rendered at low resolution with PlayStation-style vertex wobble, under
+  blue gradient menu windows. Dialogue portraits are rendered from each character's 3D model,
+  or use the actor's photo when you add one.
+
 - **Length:** five chapters, four towns, six dungeons (25 floors). A first run should take roughly
   4–6 hours. That's an estimate from encounter rates and the level curve, not a timed playthrough.
   The optional shrine and superboss add more. To lengthen it, raise `floors` (and add `loot` rows)
@@ -68,10 +74,10 @@ actor's face is clear, then crop a square around it (x, y = top-left corner, siz
 tools/make_portrait.sh frames/frame_0042.jpg 210 60 180 assets/portraits/hero1.png
 ```
 Then in `cast.js`: `portrait: 'assets/portraits/hero1.png'`. The photo appears in dialogue,
-menus, the battle status bar, save files and the cast screen.
+menus, the battle status bar, save files and the cast screen, and on the 3D model's face.
 
-Also set each character's `look` colours (skin, hair, outfit) to match their costume. The pixel sprites
-on the map and in battle are drawn from these colours.
+Also set each character's `look` colours (skin, hair, outfit) and `hairStyle` to match their
+costume. The 3D models are built from these colours, and the portrait photo becomes their face texture.
 
 ### 3. Voices: real lines from the actors
 ```bash
@@ -87,7 +93,8 @@ Characters without clips "talk" with a synthesised blip at their `voice.pitch`.
 tools/save_still.sh part2.mp4 00:41:10 assets/scenes/boss4.jpg
 ```
 Then in `config.js`: `scenes: { boss4: 'assets/scenes/boss4.jpg', ... }`. Scene keys are used by
-cutscenes and as the backdrop of the matching boss battle.
+cutscenes and as the sky behind the matching boss battle. Cutscenes without a still are staged
+in 3D, and each character steps on stage the first time they speak.
 
 ### 5. Music
 ```bash
@@ -105,7 +112,9 @@ stats are in `js/data/enemies.js` (`boss_*`), and monsters per area are in `ZONE
 ```
 index.html            page + touch controls
 js/engine.js          canvas, input, audio synth, scene stack
-js/sprites.js         procedural pixel art (characters from cast colours, monsters, tiles)
+js/render3d.js        3D layer: PS1-style renderer, low-poly characters/monsters, battle & cutscene stages, 3D maps
+js/sprites.js         map tile definitions and 2D fallback art (used if WebGL is unavailable)
+js/vendor/three.min.js  three.js r128 (MIT, see three.LICENSE)
 js/field.js           map exploration, NPCs, chests, encounters, event-script API (Ev)
 js/battle.js          active-time battle system
 js/menu.js            field menu, equipment, status, save/load, title, cast screen

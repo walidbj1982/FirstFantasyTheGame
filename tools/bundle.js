@@ -18,15 +18,18 @@ const embedAssets = src => src.replace(/(['"])(assets\/[^'"]+)\1/g, (m, q, p) =>
 });
 const css = fs.readFileSync(path.join(root, 'css/style.css'), 'utf8');
 const scripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m => m[1]);
-const js = scripts.map(s => `// ---- ${s}\n` + embedAssets(fs.readFileSync(path.join(root, s), 'utf8'))).join('\n');
+// In --fragment mode (published pages) three.js loads from cdnjs; otherwise it is inlined so the file works offline.
+const CDN = { 'js/vendor/three.min.js': 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js' };
+const cdnTags = fragment ? scripts.filter(s => CDN[s]).map(s => `<script src="${CDN[s]}"></script>\n`).join('') : '';
+const js = scripts.filter(s => !(fragment && CDN[s])).map(s => `// ---- ${s}\n` + embedAssets(fs.readFileSync(path.join(root, s), 'utf8'))).join('\n');
 const bodyStart = html.indexOf('<div id="wrap">'), bodyEnd = html.indexOf('<script');
 const body = html.slice(bodyStart, bodyEnd);
 const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || 'First Fantasy';
-const font = '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">';
+const font = (html.match(/<link rel="preconnect"[^>]*>\n<link href="https:\/\/fonts[^>]*>/) || [''])[0];
 const extraCss = fragment ? ':root { color-scheme: dark; }\nhtml, body { background: #000; }\nbody { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); box-sizing: border-box; }\n' : '';
 const head = `<title>${title}</title>\n${fragment ? '<meta name="claude:viewport-fit-sides" content="cover">\n' : ''}${font}\n<style>\n${css}\n${extraCss}</style>`;
 const page = fragment
-  ? `${head}\n${body}<script>\n${js}\n</script>\n`
+  ? `${head}\n${body}${cdnTags}<script>\n${js}\n</script>\n`
   : `<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">\n${head}\n</head>\n<body>\n${body}<script>\n${js}\n</script>\n</body>\n</html>\n`;
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, page);

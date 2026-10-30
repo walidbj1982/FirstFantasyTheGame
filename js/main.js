@@ -18,10 +18,10 @@ async function startNewGame() {
 setInterval(() => { if (S && !document.hidden) S.time += 60; }, 1000);
 
 (async function boot() {
-  bindTouch(); fit();
+  bindTouch(); fit(); R3.init();
   for (const c of Object.values(CAST)) Img.get(c.portrait);
   for (const p of Object.values(CONFIG.scenes || {})) Img.get(p);
-  try { await document.fonts.load('8px "Press Start 2P"'); } catch (e) { /* offline: fallback font */ }
+  try { await Promise.all([document.fonts.load('600 10px "Barlow"'), document.fonts.load('700 10px "Cinzel"')]); } catch (e) { /* offline: fallback fonts */ }
   // When embedded in a viewer that hot-reloads the page, carry the party over the reload.
   const hot = window.claude && window.claude.hot;
   if (hot && hot.snapshot) hot.snapshot(() => (S && Ev.field && S.pos ? { S } : {}));
