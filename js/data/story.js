@@ -15,7 +15,8 @@
 
 const STORY = {
   musicFor(mapId) {
-    if (mapId.startsWith('dungeon5')) return 'rift';
+    if (mapId.startsWith('dungeon5') || mapId.startsWith('secret')) return 'rift';
+    if (mapId.startsWith('dungeon1')) return 'forest';
     if (mapId === 'world') return 'field';
     return null;
   },
@@ -35,6 +36,7 @@ const STORY = {
     await Ev.say('hero1', 'I still see that night every time I close my eyes...');
     Ev.endScene();
     await Ev.scene('flashback', 'Years ago - the family villa');
+    Music.play('forest');
     await Ev.say('father', `${N.hero1}! Get inside, now! They're here for the Pendant!`);
     Ev.sfx('hit'); Ev.shake(20);
     await Ev.say(null, 'Masked men pour over the villa wall. Terry\'s father fights them off alone...');
@@ -135,7 +137,7 @@ const STORY = {
   async boatTrip(f) {
     Ev.flag('jetski_done');
     await Ev.scene('boat');
-    Music.play('field');
+    Music.play('sea');
     await Ev.say('hero3', 'How far is the island?');
     await Ev.say('hero2', 'I would say 2 km.');
     await Ev.say('hero1', 'What\'s that noise?');
@@ -159,6 +161,7 @@ const STORY = {
     await Ev.say('villain3', `${N.hero2}. Of course it's you.`);
     Ev.endScene();
     await Ev.scene('flashback', 'Years ago');
+    Music.play('sad');
     await Ev.say(null, 'Two boys train on the beach until sunset, swearing they\'ll be the strongest fighters in the world.');
     await Ev.say('villain3', 'One day we\'ll find out which of us is stronger.');
     await Ev.say('hero2', 'One day. Promise.');

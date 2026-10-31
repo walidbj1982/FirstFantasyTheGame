@@ -71,8 +71,14 @@ The game saves to the browser (3 slots). Save on the world map, at blue crystals
   unlocked in story order, plus the island reached by boat. Dungeon floors are generated from a fixed seed, so each
   floor is the same every time. Treasure chests hold gear you can't buy.
 - **Economy:** shops with gear upgrades per town, inns, sell-back, and steal-only items.
-- **Original chiptune soundtrack** (title, town, field, dungeon, battle, boss, final, victory, ending),
-  synthesised live. Any track can be replaced by music from the movie.
+- **Original orchestral soundtrack:** 13 pieces composed for the game and played live by a synthesised
+  orchestra (strings, harp, flute, oboe, horns, brass, choir, church organ, piano, mandolin, guitars,
+  timpani, rock and orchestral drums) in a concert-hall reverb:
+  *The Pendant* (title), *Whitewashed Streets* (towns), *Across the Coast* (world map), *Something in
+  the Dark* (the night forest), *Into the Depths* (hills, canyon, hideout), *The Old Theater*, *Two
+  Kilometres* (the boat), *Fists Clenched* (battle), *Rival's Challenge* (bosses), *Wings of Ruin*
+  (Sephiroth), *Triumph* (victory), *Aeris* (sorrow) and the ending. Any track can be replaced by
+  music from the movie. `node tools/render_music.js` exports the whole soundtrack as WAV/MP3 files.
 
 ## Make it *your* movie
 
@@ -135,7 +141,7 @@ stats are in `js/data/enemies.js` (`boss_*`), and monsters per area are in `ZONE
 
 ```
 index.html            page + touch controls
-js/engine.js          canvas, input, audio synth, scene stack
+js/engine.js          canvas, input, sound effects, the synthesised orchestra, scene stack
 js/gfx.js             procedural textures, painted sky panoramas, smooth geometry, trees and props
 js/render3d.js        3D layer: HD renderer, characters/monsters, battle & cutscene stages, 3D maps
 js/sprites.js         map tile definitions and 2D fallback art (used if WebGL is unavailable)
@@ -145,9 +151,10 @@ js/battle.js          active-time battle system
 js/menu.js            field menu, equipment, status, save/load, title, cast screen
 js/ui.js              dialogue boxes, choices, shops, cutscene backdrops
 js/state.js           party, stats, inventory, saves
-js/data/*.js          cast, config, story, rules (jobs/skills/items/gear), enemies, world, music
+js/data/*.js          cast, config, story, rules (jobs/skills/items/gear), enemies, world, music (the score)
 tools/*.sh            ffmpeg helpers to pull portraits, voices, stills and music from the movie
 tools/bundle.js       packs the game and its assets into a single shareable HTML file
+tools/render_music.js renders the soundtrack to WAV/MP3 files
 tests/                balance simulator, world/dungeon connectivity checks, browser flow tests
 ```
 
@@ -156,6 +163,7 @@ tests/                balance simulator, world/dungeon connectivity checks, brow
 ```bash
 node tests/world_check.js        # every region/dungeon reachable in story order, data references valid
 node tests/balance.js            # Monte-Carlo win rates for every stage of the game
+node tests/music_check.js        # every track parses and its instruments stay in sync
 python3 -m http.server 8765 &    # then, with Playwright installed:
 node tests/flows.js "http://localhost:8765/index.html?gfx=off" /tmp   # story, bosses, shop, menus, save/load, game over (2D mode runs fast headless)
 ```

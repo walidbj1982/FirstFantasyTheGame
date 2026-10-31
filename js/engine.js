@@ -177,20 +177,128 @@ const Sound = {
 };
 
 // ---------------------------------------------------------------- music
+// A small orchestra synthesised live with WebAudio. Each instrument is a recipe of oscillators,
+// filters and envelopes, played through a shared hall reverb. The score is in js/data/music.js.
 const N2F = n => 440 * Math.pow(2, (n - 69) / 12);
-function parseNotes(str) {
-  // tokens: "c4:2" (note c, octave 4, 2 sixteenths) | "r:4" rest | "c#5" | "eb3"
-  const out = [];
-  for (const tok of str.trim().split(/\s+/)) {
-    const [n, l] = tok.split(':'); const len = +(l || 2);
-    if (n === 'r') { out.push([null, len]); continue; }
-    const m = n.match(/^([a-g])([#b]?)(\d)$/);
-    if (!m) { out.push([null, len]); continue; }
-    const base = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }[m[1]] + (m[2] === '#' ? 1 : m[2] === 'b' ? -1 : 0);
-    out.push([12 * (+m[3] + 1) + base, len]);
-  }
-  return out;
+// o: oscillators [wave, detune (cents), gain, pitch multiple]   f: filter cutoff [start, end]
+// a/d/s/r: envelope   pluck: decays instead of sustaining   vib: [rate, cents, delay]   trem: [rate, depth]
+const ORCH = {
+  strings: { o: [['sawtooth', -9, 1], ['sawtooth', 9, 1], ['sawtooth', 0, 0.5, 0.5]], f: [1100, 2400], q: 0.5, a: 0.25, d: 0.3, s: 0.85, r: 0.6, vib: [5, 6, 0.3] },
+  violin: { o: [['sawtooth', -4, 1], ['sawtooth', 5, 0.7]], f: [2000, 3800], q: 0.9, a: 0.07, d: 0.2, s: 0.85, r: 0.3, vib: [5.5, 14, 0.15] },
+  cello: { o: [['sawtooth', -6, 1], ['sawtooth', 6, 0.8]], f: [650, 1300], q: 0.7, a: 0.1, d: 0.2, s: 0.9, r: 0.4, vib: [5, 9, 0.25] },
+  contrabass: { o: [['sawtooth', 0, 0.8], ['triangle', 0, 1]], f: [380, 620], q: 0.7, a: 0.05, d: 0.2, s: 0.9, r: 0.25 },
+  pizz: { o: [['sawtooth', 0, 0.8], ['triangle', 3, 1]], f: [1800, 500], q: 1, a: 0.003, d: 0.28, s: 0, r: 0.15, pluck: true },
+  harp: { o: [['triangle', 0, 1], ['sine', 0, 0.5, 2]], f: [3800, 1400], a: 0.002, d: 1.5, s: 0, r: 0.8, pluck: true },
+  guitar: { o: [['triangle', 0, 1], ['sawtooth', 2, 0.3]], f: [2600, 800], q: 1.5, a: 0.002, d: 0.8, s: 0, r: 0.3, pluck: true },
+  mandolin: { o: [['sawtooth', -5, 0.6], ['sawtooth', 5, 0.6], ['triangle', 0, 1]], f: [4200, 1500], q: 2, a: 0.002, d: 0.35, s: 0, r: 0.15, pluck: true },
+  piano: { o: [['triangle', 0, 1], ['sine', 0, 0.5, 2], ['sine', 2, 0.15, 3]], f: [5000, 1400], a: 0.002, d: 2.2, s: 0, r: 0.5, pluck: true },
+  celesta: { o: [['sine', 0, 1], ['sine', 0, 0.35, 2.76], ['sine', 0, 0.15, 5.4]], f: [9000, 9000], a: 0.002, d: 1.8, s: 0, r: 1.2, pluck: true },
+  flute: { o: [['sine', 0, 1], ['triangle', 0, 0.25, 2]], noise: 0.04, f: [3200, 3200], a: 0.07, d: 0.15, s: 0.85, r: 0.18, vib: [5, 11, 0.25] },
+  oboe: { o: [['sawtooth', 0, 1], ['square', 4, 0.3]], f: [1500, 1700], q: 3, a: 0.05, d: 0.15, s: 0.85, r: 0.15, vib: [5.5, 10, 0.2] },
+  clarinet: { o: [['square', 0, 1], ['sine', 0, 0.5]], f: [1200, 1400], q: 1.2, a: 0.05, d: 0.1, s: 0.9, r: 0.15, vib: [5, 6, 0.3] },
+  horn: { o: [['sawtooth', -4, 1], ['sawtooth', 4, 0.8]], f: [420, 1300], q: 1, a: 0.1, d: 0.3, s: 0.85, r: 0.35, vib: [4.5, 5, 0.4] },
+  brass: { o: [['sawtooth', -3, 1], ['sawtooth', 3, 1]], f: [700, 3000], q: 1.4, a: 0.035, d: 0.25, s: 0.75, r: 0.2, vib: [5, 6, 0.25] },
+  choir: { o: [['sawtooth', -11, 1], ['sawtooth', 11, 1], ['sawtooth', 0, 0.7]], formants: [[650, 5, 1], [1100, 7, 0.6], [2700, 9, 0.25]], a: 0.35, d: 0.3, s: 0.9, r: 0.8, vib: [4.5, 10, 0.4] },
+  organ: { o: [['sine', 0, 1], ['sine', 0, 0.7, 2], ['sine', 0, 0.5, 3], ['sine', 0, 0.35, 4], ['sine', 0, 0.2, 8]], f: [7000, 7000], a: 0.02, d: 0.1, s: 1, r: 0.2, trem: [6, 0.06] },
+  accordion: { o: [['square', -9, 0.6], ['sawtooth', 9, 0.6]], f: [1900, 1900], q: 2, a: 0.04, d: 0.1, s: 0.9, r: 0.12, trem: [6.5, 0.12] },
+  bass: { o: [['sawtooth', 0, 0.6], ['sine', 0, 1]], f: [900, 320], q: 2.5, a: 0.005, d: 0.35, s: 0.55, r: 0.08 },
+  lead: { o: [['sawtooth', -7, 1], ['sawtooth', 7, 1], ['square', 0, 0.4, 0.5]], dist: true, f: [2000, 1500], q: 1, a: 0.01, d: 0.3, s: 0.75, r: 0.15, vib: [5.5, 16, 0.2] },
+  chug: { o: [['sawtooth', -5, 1], ['sawtooth', 5, 1]], dist: true, f: [1100, 320], q: 1.2, a: 0.003, d: 0.14, s: 0.2, r: 0.05 },
+  pad: { o: [['sawtooth', -12, 1], ['sawtooth', 12, 1]], f: [500, 1100], q: 0.5, a: 0.8, d: 0.5, s: 0.9, r: 1.2 },
+  timp: { o: [['sine', 0, 1], ['sine', 0, 0.3, 1.5]], noise: 0.25, f: [900, 300], a: 0.003, d: 1.1, s: 0, r: 0.6, pluck: true, drop: 0.96 }
+};
+let DIST_CURVE = null;
+function distCurve() {
+  if (DIST_CURVE) return DIST_CURVE;
+  const n = 1025, c = new Float32Array(n); // odd length: silence maps exactly to 0
+  for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * 6) * 0.8; }
+  return (DIST_CURVE = c);
 }
+const Orchestra = {
+  init() { // shared bus: dry + hall reverb, gentle compression
+    const ac = Sound.ac; if (!ac || this.bus) return;
+    this.bus = ac.createGain();
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 3; comp.attack.value = 0.01; comp.release.value = 0.25;
+    this.bus.connect(comp); comp.connect(Sound.music);
+    this.verb = ac.createConvolver(); this.verb.buffer = this.impulse(3.2, 2.4); this.verb.connect(comp);
+  },
+  // each track plays through its own gain so it can fade out cleanly when the music changes
+  track(reverb) {
+    const ac = Sound.ac, tg = ac.createGain(), send = ac.createGain();
+    send.gain.value = reverb; tg.connect(this.bus); tg.connect(send); send.connect(this.verb);
+    return (this.tg = tg);
+  },
+  release(tg) {
+    if (!tg || !Sound.ac) return; const t = Sound.ac.currentTime;
+    tg.gain.cancelScheduledValues(t); tg.gain.setValueAtTime(tg.gain.value, t); tg.gain.linearRampToValueAtTime(0, t + 0.4);
+    setTimeout(() => tg.disconnect(), 600);
+  },
+  impulse(sec, decay) {
+    const ac = Sound.ac, len = Math.floor(ac.sampleRate * sec), b = ac.createBuffer(2, len, ac.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); let lp = 0; for (let i = 0; i < len; i++) { lp = lp * 0.6 + (Math.random() * 2 - 1) * 0.4; d[i] = lp * Math.pow(1 - i / len, decay); } }
+    return b;
+  },
+  out(pan, tg) { // per-voice output: panner -> the track's gain
+    const ac = Sound.ac, g = ac.createGain();
+    if (ac.createStereoPanner && pan) { const p = ac.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(tg); } else g.connect(tg);
+    return g;
+  },
+  note(inst, midi, t, dur, vol, pan = 0, tg = this.tg) {
+    const I = ORCH[inst], ac = Sound.ac; if (!I || !ac) return;
+    const f0 = N2F(midi), end = I.pluck ? t + Math.min(I.d, dur + I.r) : t + dur, stopAt = end + I.r + 0.05;
+    const amp = ac.createGain(), out = this.out(pan, tg); amp.gain.value = 0; // silent until the note starts
+    // filter (lowpass with an envelope, or vowel formants for the choir)
+    let head;
+    if (I.formants) { head = ac.createGain(); for (const [ff, q, gn] of I.formants) { const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = ff; bp.Q.value = q; const fg = ac.createGain(); fg.gain.value = gn * 2.2; head.connect(bp); bp.connect(fg); fg.connect(amp); } }
+    else {
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = I.q || 0.7;
+      const fa = Math.min(20000, I.f[0] * (midi > 72 ? 1.4 : 1)), fb = Math.min(20000, I.f[1] * (midi > 72 ? 1.4 : 1));
+      lp.frequency.setValueAtTime(fa, t); lp.frequency.exponentialRampToValueAtTime(fb, t + (I.pluck ? I.d * 0.6 : I.a + 0.05));
+      head = lp; lp.connect(amp);
+    }
+    if (I.dist) { const ws = ac.createWaveShaper(); ws.curve = distCurve(); ws.connect(head); head = ws; }
+    // oscillators
+    const tot = I.o.reduce((s, o) => s + o[2], 0), oscs = [];
+    let lfo = null;
+    if (I.vib) { lfo = ac.createOscillator(); lfo.frequency.value = I.vib[0]; const lg = ac.createGain(); lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(I.vib[1], t + I.vib[2] + 0.01); lfo.connect(lg); lfo.lg = lg; lfo.start(t); lfo.stop(stopAt); }
+    for (const [w, det, gn, mult = 1] of I.o) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = w; o.frequency.setValueAtTime(f0 * mult, t); o.detune.value = det;
+      if (I.drop) o.frequency.exponentialRampToValueAtTime(f0 * mult * I.drop, t + 0.3);
+      if (lfo) lfo.lg.connect(o.detune);
+      g.gain.value = gn / tot; o.connect(g); g.connect(head); o.start(t); o.stop(stopAt); oscs.push(o);
+    }
+    if (I.noise) { const s = ac.createBufferSource(); s.buffer = Sound.noiseBuf; const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = Math.min(8000, f0 * 2); bp.Q.value = 1; const g = ac.createGain(); g.gain.value = I.noise; s.connect(bp); bp.connect(g); g.connect(head); s.start(t, Math.random() * 0.5); s.stop(stopAt); }
+    // amplitude envelope
+    const A = amp.gain, peak = vol;
+    A.setValueAtTime(0.0001, t); A.exponentialRampToValueAtTime(peak, t + I.a);
+    if (I.pluck) A.exponentialRampToValueAtTime(0.0001, end + I.r * 0.5);
+    else { A.exponentialRampToValueAtTime(Math.max(0.0001, peak * I.s), t + I.a + I.d); A.setValueAtTime(Math.max(0.0001, peak * I.s), Math.max(t + I.a + I.d, end)); A.exponentialRampToValueAtTime(0.0001, Math.max(t + I.a + I.d, end) + I.r); }
+    if (I.trem) { const tl = ac.createOscillator(), tg = ac.createGain(); tl.frequency.value = I.trem[0]; tg.gain.value = peak * I.trem[1]; tl.connect(tg); tg.connect(A); tl.start(t); tl.stop(stopAt); }
+    amp.connect(out);
+  },
+  // percussion: K kick, s/S snare, h/o hats, C crash, t/u toms, T/m tambourine & shaker, H heartbeat, D taiko, R ride
+  drum(ch, t, vol, pan = 0, tg = this.tg) {
+    const ac = Sound.ac, out = this.out(pan, tg);
+    const nz = (dur, type, freq, q, v, delay = 0) => { const s = ac.createBufferSource(); s.buffer = Sound.noiseBuf; const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 0.7; const g = ac.createGain(); g.gain.setValueAtTime(v, t + delay); g.gain.exponentialRampToValueAtTime(0.0001, t + delay + dur); s.connect(f); f.connect(g); g.connect(out); s.start(t + delay, Math.random() * 0.5); s.stop(t + delay + dur + 0.05); };
+    const tn = (fa, fb, dur, v, w = 'sine', delay = 0) => { const o = ac.createOscillator(), g = ac.createGain(); o.type = w; o.frequency.setValueAtTime(fa, t + delay); o.frequency.exponentialRampToValueAtTime(fb, t + delay + dur * 0.6); g.gain.setValueAtTime(v, t + delay); g.gain.exponentialRampToValueAtTime(0.0001, t + delay + dur); o.connect(g); g.connect(out); o.start(t + delay); o.stop(t + delay + dur + 0.05); };
+    switch (ch) {
+      case 'K': tn(140, 42, 0.32, vol * 1.6); nz(0.02, 'highpass', 3000, 0.7, vol * 0.3); break;
+      case 's': case 'S': { const k = ch === 'S' ? 1.4 : 1; nz(0.2, 'bandpass', 1900, 0.8, vol * k); tn(200, 160, 0.1, vol * 0.5 * k, 'triangle'); break; }
+      case 'r': nz(0.07, 'bandpass', 2400, 1, vol * 0.45); break; // snare roll stroke
+      case 'h': nz(0.05, 'highpass', 7500, 0.7, vol * 0.35); break;
+      case 'o': nz(0.32, 'highpass', 6500, 0.7, vol * 0.35); break;
+      case 'R': nz(0.6, 'bandpass', 5500, 3, vol * 0.3); tn(3100, 3000, 0.6, vol * 0.04, 'square'); break;
+      case 'C': nz(2.2, 'highpass', 3500, 0.5, vol * 0.7); nz(1.5, 'bandpass', 6000, 2, vol * 0.4); break;
+      case 't': tn(120, 75, 0.4, vol * 1.1); break;
+      case 'u': tn(180, 120, 0.3, vol * 1.0); break;
+      case 'D': tn(80, 48, 0.9, vol * 1.8); nz(0.15, 'lowpass', 600, 0.7, vol * 0.5); break;
+      case 'T': nz(0.14, 'highpass', 6500, 1, vol * 0.5); nz(0.1, 'highpass', 8000, 1, vol * 0.3, 0.018); break;
+      case 'm': nz(0.06, 'highpass', 5500, 0.7, vol * 0.25); break;
+      case 'H': tn(70, 45, 0.18, vol * 1.6); tn(66, 42, 0.22, vol * 1.2, 'sine', 0.2); break;
+    }
+  }
+};
 const Music = {
   cur: null, name: null, el: null, timer: null,
   play(name) {
@@ -202,34 +310,35 @@ const Music = {
       this.el.play().catch(() => {}); return;
     }
     const tr = window.TRACKS && TRACKS[name]; if (!tr) return;
-    this.cur = {
-      tr, chans: tr.ch.map(c => ({ ...c, seq: parseNotes(c.n), i: 0, next: 0 })), started: false
-    };
+    const mk = (p, intro) => ({ ...p, seq: p.kit ? parseKit(p.kit) : parseNotes(p.n), i: 0, next: 0, intro });
+    this.cur = { tr, chans: [...(tr.intro || []).map(p => mk(p, true)), ...tr.parts.map(p => mk(p, false))] };
     this.resume();
   },
   resume() {
     if (this.el && Sound.ac) { this.el.play().catch(() => {}); }
     if (!this.cur || !Sound.ac || this.timer) return;
-    const ac = Sound.ac, step = 60 / this.cur.tr.bpm / 4;
-    const t0 = ac.currentTime + 0.05;
-    for (const c of this.cur.chans) { c.i = 0; c.next = t0; }
+    Orchestra.init();
+    const ac = Sound.ac, tr = this.cur.tr, step = 60 / tr.bpm / 4, tg = this.cur.tg = Orchestra.track(tr.reverb != null ? tr.reverb : 0.3);
+    const t0 = ac.currentTime + 0.08, introLen = tr.intro ? seqLength(this.cur.chans.find(c => c.intro).seq) * step : 0;
+    for (const c of this.cur.chans) { c.i = 0; c.next = c.intro ? t0 : t0 + introLen; }
     this.timer = setInterval(() => {
       const cur = this.cur; if (!cur) return;
-      const ahead = ac.currentTime + 0.25;
+      const ahead = ac.currentTime + 0.3;
       for (const c of cur.chans) {
         while (c.next < ahead) {
-          if (c.i >= c.seq.length) { if (cur.tr.once) { c.next = Infinity; break; } c.i = 0; }
-          const [note, len] = c.seq[c.i++]; const dur = len * step;
-          if (note !== null) {
-            if (c.w === 'noise') Sound.noise(c.next, Math.min(dur, 0.08), c.v, Sound.music, note > 60 ? 5000 : 300);
-            else Sound.tone(N2F(note), c.next, dur * (c.gate || 0.9), c.w, c.v, Sound.music);
+          if (c.i >= c.seq.length) { if (c.intro || cur.tr.once) { c.next = Infinity; break; } c.i = 0; }
+          const [notes, len, acc] = c.seq[c.i++], dur = len * step, v = (c.v || 0.1) * (acc ? 1.35 : 1);
+          if (notes) {
+            if (c.kit) { for (const ch of notes) Orchestra.drum(ch, c.next, v, c.pan || 0, tg); }
+            else for (const n of notes) Orchestra.note(c.inst, n + (c.t || 0), c.next, dur * (c.gate || 0.95), v, c.pan || 0, tg);
           }
           c.next += dur;
         }
       }
-    }, 50);
+    }, 60);
   },
   stop() {
+    if (this.cur) Orchestra.release(this.cur.tg);
     clearInterval(this.timer); this.timer = null; this.cur = null; this.name = null;
     if (this.el) { this.el.pause(); this.el = null; }
   }
