@@ -40,5 +40,5 @@ window.CONFIG = {
     // battle: 'assets/music/battle.mp3',
   }
 };
-// ?gfx=low in the page address forces the light graphics mode
-try { if (/[?&]gfx=low/.test(location.search)) CONFIG.graphics = 'low'; } catch (e) {}
+// ?gfx=low in the page address forces the light graphics mode (?gfx=off: 2D fallback, used by tests)
+try { const m = /[?&]gfx=(low|off)/.exec(location.search); if (m) CONFIG.graphics = m[1]; } catch (e) {}

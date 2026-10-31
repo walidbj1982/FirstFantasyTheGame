@@ -7,6 +7,7 @@ const R3 = {
   W: 960, H: 720, used: false, ok: false, shadows: true,
   init() {
     this.canvas = document.getElementById('gl');
+    if (window.CONFIG && CONFIG.graphics === 'off') return;
     try {
       const r = this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
       r.outputEncoding = THREE.sRGBEncoding;

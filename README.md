@@ -157,5 +157,5 @@ tests/                balance simulator, world/dungeon connectivity checks, brow
 node tests/world_check.js        # every region/dungeon reachable in story order, data references valid
 node tests/balance.js            # Monte-Carlo win rates for every stage of the game
 python3 -m http.server 8765 &    # then, with Playwright installed:
-node tests/flows.js http://localhost:8765/index.html /tmp   # story, bosses, shop, menus, save/load, game over
+node tests/flows.js "http://localhost:8765/index.html?gfx=off" /tmp   # story, bosses, shop, menus, save/load, game over (2D mode runs fast headless)
 ```
