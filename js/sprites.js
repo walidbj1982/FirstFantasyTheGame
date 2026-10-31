@@ -274,8 +274,11 @@ const THEMES = {
   ruins: { id: 'ruins', floor: '#b08050', floorSpots: ['#a07040', '#c09060'], wall: '#7a4a2a', top: '#2a1408', hazard: 'lava' },
   rift: { id: 'rift', floor: '#3a2a4a', floorSpots: ['#4a3a5a', '#2a1a3a', '#6a2a6a'], wall: '#5a2a6a', top: '#0a0010', hazard: 'lava' },
   shrine: { id: 'shrine', floor: '#909098', floorSpots: ['#80808a', '#a0a0a8'], wall: '#606070', top: '#101018', hazard: 'dwater' },
-  town_grass: { id: 'town_grass', ground: '#5aa04a', groundSpots: ['#4a904a', '#6ab05a'], leaf: '#2e8a32', roof: '#b04030', wall: '#e8d8b8', flowers: ['#f0e040', '#f06080', '#fff'] },
-  town_port: { id: 'town_port', ground: '#5aa04a', groundSpots: ['#4a904a', '#6ab05a'], leaf: '#2e8a32', roof: '#3060b0', wall: '#f0f0e8', flowers: ['#80c0ff', '#ffffff'] },
-  town_snow: { id: 'town_snow', ground: '#e8eef8', groundSpots: ['#d0dcf0', '#ffffff'], leaf: '#2a6a5a', roof: '#4a6a8a', wall: '#c8b8a0', flowers: ['#a0d0ff', '#ffffff'] },
-  town_sand: { id: 'town_sand', ground: '#e0c070', groundSpots: ['#d0b060', '#f0d890'], leaf: '#3a8a3a', roof: '#c08030', wall: '#f0e0c0', flowers: ['#f06030', '#f0e040'] }
+  scrub: { id: 'scrub', floor: '#c8a65c', floorSpots: ['#b8964c', '#d8b66c'], wall: '#8a7048', top: '#5a4a30', hazard: 'dwater' },
+  canyon: { id: 'canyon', floor: '#c07848', floorSpots: ['#b06838', '#d08858'], wall: '#8a4a2a', top: '#4a2414', hazard: 'lava' },
+  theater: { id: 'theater', floor: '#d8c49a', floorSpots: ['#c8b48a', '#e8d4aa'], wall: '#b8a07a', top: '#7a6a50', hazard: 'dwater' },
+  town_old: { id: 'town_old', ground: '#7aa04a', groundSpots: ['#6a903a', '#8ab05a'], leaf: '#3a7a3a', roof: '#f2f0ea', wall: '#f4f2ec', door: '#2a6ab8', flowers: ['#e04080', '#f0e040', '#ffffff'], med: true },
+  town_harbor: { id: 'town_harbor', ground: '#d8d0bc', groundSpots: ['#c8c0ac', '#e8e0cc'], leaf: '#3a7a3a', roof: '#f2f0ea', wall: '#f6f4ee', door: '#1e5aa8', flowers: ['#3a8ae0', '#ffffff'], med: true },
+  town_olive: { id: 'town_olive', ground: '#c8a65c', groundSpots: ['#b8964c', '#d8b66c'], leaf: '#6a7a4a', roof: '#f2f0ea', wall: '#f0ece2', door: '#2a7ab0', flowers: ['#e06030', '#f0e040'], med: true },
+  town_port: { id: 'town_port', ground: '#e0c890', groundSpots: ['#d0b880', '#f0d8a0'], leaf: '#3a8a3a', roof: '#f2f0ea', wall: '#f6f4ee', door: '#2a5ac8', flowers: ['#3a8ae0', '#e04080'], med: true }
 };

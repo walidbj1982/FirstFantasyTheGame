@@ -15,16 +15,16 @@ const MACRO = [
   '~ggfggg^dd4ddddd^~',
   '~gfgggf^dddd^ddd^~',
   '~g1gggg^ddDddddd^~',
-  '~ggggAf^ddddd^^^^~',
-  '~fggggf^dddddwkE^~',
-  '~ffgggf^ddd^^^^^^~',
+  '~ggggAf^ddddd~~~~~',
+  '~fggggf^dddddwkE~~',
+  '~ffgggf^ddd~~~~~~~',
   '~~~~~~~~~~~~~~~~~~'
 ];
 const GATES = {
   x: { kind: 'bridge', flag: 'gate_bridge', msg: 'The bridge is broken. You cannot cross.' },
   y: { kind: 'pass', flag: 'gate_pass', msg: 'A great boulder blocks the mountain pass.' },
   z: { kind: 'pass', flag: 'gate_snow', msg: 'Snow and rock have sealed the southern pass.' },
-  w: { kind: 'rift', flag: 'gate_rift', msg: 'A wall of dark energy bars the way.' }
+  w: { kind: 'boat', flag: 'gate_rift', msg: 'The island lies across the water. You need a boat.' }
 };
 const LOCS = {
   1: { id: 'town1', tile: 'town1' }, 2: { id: 'town2', tile: 'town2' }, 3: { id: 'town3', tile: 'town3' }, 4: { id: 'town4', tile: 'town4' },
@@ -71,11 +71,12 @@ function buildWorld() {
       const g = GATES[m];
       const pW = PASSABLE_MACRO.includes(M(cx - 1, cy)), pE = PASSABLE_MACRO.includes(M(cx + 1, cy));
       const horiz = pW && pE;
-      const fill = g.kind === 'bridge' ? 'water' : g.kind === 'rift' ? 'riftwall' : regionMountain(zone);
-      const path = g.kind === 'bridge' ? (horiz ? 'bridgeH' : 'bridgeV') : g.kind === 'rift' ? 'lightbridge' : 'road';
+      const wet = g.kind === 'bridge' || g.kind === 'boat';
+      const fill = wet ? 'water' : g.kind === 'rift' ? 'riftwall' : regionMountain(zone);
+      const path = wet ? (horiz ? 'bridgeH' : 'bridgeV') : g.kind === 'rift' ? 'lightbridge' : 'road';
       for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) set(cx * 4 + x, cy * 4 + y, fill);
       for (let i = 0; i < 4; i++) horiz ? set(cx * 4 + i, cy * 4 + 2, path) : set(cx * 4 + 2, cy * 4 + i, path);
-      const closed = g.kind === 'bridge' ? 'brokenbridge' : g.kind === 'rift' ? 'riftwall' : 'boulder';
+      const closed = g.kind === 'bridge' ? 'brokenbridge' : g.kind === 'boat' ? 'water' : g.kind === 'rift' ? 'riftwall' : 'boulder';
       gates.push({ x: cx * 4 + 2, y: cy * 4 + 2, flag: g.flag, open: path, closed, msg: g.msg });
     }
   }
@@ -123,21 +124,21 @@ const TOWN_KEY = { T: 'ttree', ',': 'tground', R: 'roof', W: 'wall', N: 'window'
 const STALLS = [[4, 5, 'inn'], [19, 5, 'items'], [4, 12, 'weapons'], [20, 12, 'armor']];
 
 const TOWNS = {
-  town1: { theme: 'town_grass', innPrice: 10,
+  town1: { theme: 'town_old', innPrice: 10,
     items: ['potion', 'antidote', 'eyedrop', 'tent'],
-    weapons: ['bronzesword', 'oakrod', 'ashstaff', 'knife'],
+    weapons: ['leathergloves', 'clothwraps', 'gunarm'],
     armor: ['chainmail', 'cottonrobe', 'leathervest'] },
-  town2: { theme: 'town_port', innPrice: 30,
+  town2: { theme: 'town_harbor', innPrice: 30,
     items: ['potion', 'phoenix', 'ether', 'antidote', 'eyedrop', 'echo', 'tent'],
-    weapons: ['ironblade', 'silverrod', 'healstaff', 'kris'],
+    weapons: ['ironknuckles', 'trainingband', 'assaultgun'],
     armor: ['ironarmor', 'silkrobe', 'brigandine', 'starpendant', 'powerband', 'magicring'] },
-  town3: { theme: 'town_snow', innPrice: 80,
+  town3: { theme: 'town_olive', innPrice: 80,
     items: ['potion', 'hipotion', 'phoenix', 'ether', 'remedy', 'tent', 'arctic', 'bomb'],
-    weapons: ['mythrilsword', 'frostrod', 'prismstaff', 'mythrildagger'],
+    weapons: ['steelknuckles', 'dragonband', 'heavyvulcan'],
     armor: ['mythrilmail', 'magerobe', 'mythrilvest', 'guardring', 'lifecharm'] },
-  town4: { theme: 'town_sand', innPrice: 150,
+  town4: { theme: 'town_port', innPrice: 150,
     items: ['hipotion', 'phoenix', 'ether', 'hiether', 'remedy', 'tent', 'zeus'],
-    weapons: ['flamberge', 'emberrod', 'sagestaff', 'fang'],
+    weapons: ['flameknuckles', 'spiritwraps', 'flamecannon'],
     armor: ['flameplate', 'sagerobe', 'ninjagarb', 'swiftanklet', 'lifecharm'] }
 };
 function buildTown(id) {
@@ -150,18 +151,18 @@ function buildTown(id) {
 // ------------------------------------------------------------------ dungeons
 const DUNGEONS = {
   dungeon1: { theme: 'woods', floors: 3, zone: 'd1', boss: 'boss1', bossLook: { cast: 'villain4' },
-    loot: [['potion', 'gil:150'], ['ironblade', 'ether'], ['phoenix', 'silkrobe']] },
-  dungeon2: { theme: 'cave', floors: 4, zone: 'd2', boss: 'boss2', bossLook: { kind: 'snake', pal: ENEMIES.boss_serpent.pal },
-    loot: [['hipotion', 'gil:600'], ['brigandine', 'ether'], ['silverrod', 'phoenix'], ['magicring', 'hipotion']] },
-  dungeon3: { theme: 'ice', floors: 4, zone: 'd3', boss: 'boss3', bossLook: { cast: 'villain3' },
-    loot: [['hipotion', 'gil:1500'], ['mythrilvest', 'hiether'], ['prismstaff', 'phoenix'], ['powerband', 'remedy']] },
-  dungeon4: { theme: 'ruins', floors: 5, zone: 'd4', boss: 'boss4', bossLook: { cast: 'villain2' },
-    loot: [['xpotion', 'gil:3000'], ['flamberge', 'hiether'], ['sagerobe', 'phoenix'], ['zeus', 'elixir'], ['lifecharm', 'xpotion']] },
-  dungeon5: { theme: 'rift', floors: 6, zone: 'd5', boss: 'boss5', bossLook: { cast: 'villain1' },
-    loot: [['crystalsaber', 'xpotion'], ['starrod', 'hiether'], ['seraphstaff', 'elixir'], ['shadowblade', 'crystalmail'],
-      ['lumenrobe', 'shadowgarb'], ['megalixir', 'elixir']] },
+    loot: [['potion', 'gil:150'], ['ironknuckles', 'ether'], ['phoenix', 'silkrobe']] },
+  dungeon2: { theme: 'scrub', floors: 4, zone: 'd2', boss: 'boss2', bossLook: { cast: 'villain2' },
+    loot: [['hipotion', 'gil:600'], ['brigandine', 'ether'], ['trainingband', 'phoenix'], ['magicring', 'hipotion']] },
+  dungeon3: { theme: 'canyon', floors: 4, zone: 'd3', boss: 'boss3', bossLook: { cast: 'villain5' },
+    loot: [['hipotion', 'gil:1500'], ['mythrilvest', 'hiether'], ['heavyvulcan', 'phoenix'], ['powerband', 'remedy']] },
+  dungeon4: { theme: 'cave', floors: 5, zone: 'd4', boss: 'boss4', bossLook: { cast: 'villain6' },
+    loot: [['xpotion', 'gil:3000'], ['flameknuckles', 'hiether'], ['sagerobe', 'phoenix'], ['zeus', 'elixir'], ['lifecharm', 'xpotion']] },
+  dungeon5: { theme: 'theater', floors: 6, zone: 'd5', boss: 'boss5', bossLook: { cast: 'villain1' },
+    loot: [['crystalknuckles', 'xpotion'], ['sageband', 'hiether'], ['thundercannon', 'elixir'], ['crystalmail', 'shadowgarb'],
+      ['lumenrobe', 'elixir'], ['megalixir', 'elixir']] },
   secret: { theme: 'shrine', floors: 3, zone: 'ds', boss: 'bossS', bossLook: { kind: 'golem', pal: ENEMIES.boss_forgotten.pal },
-    loot: [['dawnedge', 'riftscepter'], ['luminastaff', 'moonfang'], ['dawnarmor', 'riftrobe', 'phantomgarb', 'megalixir']] }
+    loot: [['wolfgloves', 'heavenband'], ['ultimacannon', 'ribbon'], ['dawnarmor', 'riftrobe', 'phantomgarb', 'megalixir']] }
 };
 
 function buildDungeonFloor(did, floor) {

@@ -45,22 +45,22 @@ SIM.run = function(stage, n) {
         // simple hero AI
         const low = heroes.filter(h => h.hp > 0 && h.hp < h.maxhp * 0.4);
         const known = knownSkills(b.m);
-        if (b.job === 'healer' && low.length) {
-          const sk = ['curaga', 'cura', 'cure'].find(s => known.includes(s) && b.mp >= SKILLS[s].mp);
+        if (b.job === 'monk' && low.length) {
+          const sk = ['healingwave', 'chiheal'].find(s => known.includes(s) && b.mp >= SKILLS[s].mp);
           if (sk) { b.mp -= SKILLS[sk].mp; for (const t of SKILLS[sk].target === 'allies' ? heroes.filter(h=>h.hp>0) : [low[0]]) t.hp = Math.min(t.maxhp, t.hp + SKILLS[sk].pow * (b.mag + b.lv) / 4); continue; }
         }
         if (low.length && potions > 0) { potions--; low[0].hp = Math.min(low[0].maxhp, low[0].hp + (stage.potionHeal || 120)); continue; }
         let s = SKILLS.attack;
-        if (b.job === 'mage') {
+        if (b.job === 'monk') {
           const best = known.filter(id => SKILLS[id].kind === 'magic' && b.mp >= SKILLS[id].mp).sort((a, c) => SKILLS[c].pow - SKILLS[a].pow)[0];
           if (best) { s = SKILLS[best]; b.mp -= s.mp; }
         }
-        if (b.job === 'knight') {
+        if (b.job === 'brawler' || b.job === 'gunner') {
           const best = known.filter(id => SKILLS[id].kind === 'phys' && SKILLS[id].mp && b.mp >= SKILLS[id].mp).sort((a, c) => SKILLS[c].pow * (SKILLS[c].hits||1) - SKILLS[a].pow * (SKILLS[a].hits||1))[0];
           if (best && ens.some(e=>e.boss)) { s = SKILLS[best]; b.mp -= s.mp; }
         }
         const ts = s.target === 'enemies' ? foes : [foes.sort((a,c)=>a.hp-c.hp)[0]];
-        for (let h = 0; h < (s.hits || 1); h++) for (const t of ts) { if (t.hp<=0) continue; const d = calcDamage(b, t, s); if (!d.miss) t.hp = Math.max(0, Math.min(t.maxhp, t.hp - d.dmg)); }
+        for (let h = 0; h < (s.hits || 1); h++) for (const t of ts) { if (t.hp<=0) continue; const d = calcDamage(b, t, s); if (!d.miss) t.hp = Math.max(0, Math.min(t.maxhp, t.hp - d.dmg)); if (t.fleeAt && t.hp < t.maxhp * t.fleeAt) t.hp = 0; }
       }
     }
     if (ens.every(e => e.hp <= 0)) { wins++; hpLeft += heroes.reduce((a, h) => a + h.hp / h.maxhp, 0) / heroes.length; }
@@ -69,33 +69,34 @@ SIM.run = function(stage, n) {
   return { win: (wins / n * 100).toFixed(0) + '%', rounds: (rounds / n).toFixed(1), hpLeft: wins ? (hpLeft / wins * 100).toFixed(0) + '%' : '-' };
 };
 `, ctx);
-const G = (sw, rod, st, dg, hv, rb, lt, acc) => ({ knight: { weapon: sw, armor: hv, acc }, mage: { weapon: rod, armor: rb, acc }, healer: { weapon: st, armor: rb, acc }, rogue: { weapon: dg, armor: lt, acc } });
-const T1 = G('bronzesword', 'oakrod', 'ashstaff', 'knife', 'chainmail', 'cottonrobe', 'leathervest');
-const T2 = G('ironblade', 'silverrod', 'healstaff', 'kris', 'ironarmor', 'silkrobe', 'brigandine');
-const T3 = G('mythrilsword', 'frostrod', 'prismstaff', 'mythrildagger', 'mythrilmail', 'magerobe', 'mythrilvest');
-const T4 = G('flamberge', 'emberrod', 'sagestaff', 'fang', 'flameplate', 'sagerobe', 'ninjagarb');
-const T5 = G('crystalsaber', 'starrod', 'seraphstaff', 'shadowblade', 'crystalmail', 'lumenrobe', 'shadowgarb');
-const P1 = ['hero1'], P2 = ['hero1', 'hero2'], P3 = ['hero1', 'hero2', 'hero3'], P4 = ['hero1', 'hero2', 'hero3', 'hero4'];
+const G = (gl, bd, gn, hv, rb, lt, acc) => ({ brawler: { weapon: gl, armor: lt, acc }, monk: { weapon: bd, armor: rb, acc }, gunner: { weapon: gn, armor: hv, acc } });
+const T1 = G('leathergloves', 'clothwraps', 'gunarm', 'chainmail', 'cottonrobe', 'leathervest');
+const T2 = G('ironknuckles', 'trainingband', 'assaultgun', 'ironarmor', 'silkrobe', 'brigandine');
+const T3 = G('steelknuckles', 'dragonband', 'heavyvulcan', 'mythrilmail', 'magerobe', 'mythrilvest');
+const T4 = G('flameknuckles', 'spiritwraps', 'flamecannon', 'flameplate', 'sagerobe', 'ninjagarb');
+const T5 = G('crystalknuckles', 'sageband', 'thundercannon', 'crystalmail', 'lumenrobe', 'shadowgarb');
+const P1 = ['hero1'], P3 = ['hero1', 'hero2', 'hero3'];
 const Z = vm.runInContext('ZONES', ctx);
 const rnd = (z, k) => Array.from({ length: k }, () => Z[z].pool[Math.floor(Math.random() * Z[z].pool.length)]);
 const stages = [
-  ['prologue solo L1 x2', P1, 1, T1, () => rnd('r1', 2), 2],
-  ['r1 L2 x3', P2, 2, T1, () => rnd('r1', 3), 2],
-  ['d1 L5 x3', P2, 5, T1, () => rnd('d1', 3), 2],
-  ['BOSS1 L7', P2, 7, T2, () => ['boss_grimble'], 4],
+  ['r1 L2 x3', P3, 2, T1, () => rnd('r1', 3), 2],
+  ['d1 L5 x3', P3, 5, T1, () => rnd('d1', 3), 2],
+  ['STRANGER L7', P3, 7, T2, () => ['boss_stranger'], 4],
   ['r2 L9 x3', P3, 9, T2, () => rnd('r2', 3), 2],
-  ['d2 L12 x4', P3, 12, T2, () => rnd('d2', 4), 2],
-  ['BOSS2 L14', P3, 14, T2, () => ['boss_serpent'], 5],
-  ['r3 L16 x3', P4, 16, T3, () => rnd('r3', 3), 2],
-  ['d3 L19 x4', P4, 19, T3, () => rnd('d3', 4), 2],
-  ['BOSS3 L22', P4, 22, T3, () => ['boss_hask'], 6],
-  ['r4 L24 x4', P4, 24, T4, () => rnd('r4', 4), 2],
-  ['d4 L27 x4', P4, 27, T4, () => rnd('d4', 4), 2],
-  ['BOSS4 L31', P4, 31, T4, () => ['boss_sable'], 6],
-  ['d5 L34 x4', P4, 34, T5, () => rnd('d5', 4), 2],
-  ['VEXIS L37', P4, 37, T5, () => ['boss_vexis'], 6],
-  ['VEXIS2 L38', P4, 38, T5, () => ['boss_vexis2'], 6],
-  ['FORGOTTEN L48', P4, 48, T5, () => ['boss_forgotten'], 6]
+  ['d2 L12 x3', P3, 12, T2, () => rnd('d2', 3), 2],
+  ['RUFUS L14', P3, 14, T2, () => ['boss_rufus'], 5],
+  ['r3 L16 x3', P3, 16, T3, () => rnd('r3', 3), 2],
+  ['d3 L19 x3', P3, 19, T3, () => rnd('d3', 3), 2],
+  ['VIPER L22', P3, 22, T3, () => ['boss_viper'], 6],
+  ['r4 L24 x3', P3, 24, T4, () => rnd('r4', 3), 2],
+  ['d4 L27 x3', P3, 27, T4, () => rnd('d4', 3), 2],
+  ['CARTOGRAPHER L30', P3, 30, T4, () => ['boss_cartographer'], 6],
+  ['JETSKIS L31', P3, 31, T4, () => ['boss_jetskis'], 6],
+  ['KYO L33 (to flee)', P3, 33, T5, () => ['boss_kyo'], 6],
+  ['d5 L34 x3', P3, 34, T5, () => rnd('d5', 3), 2],
+  ['SEPHIROTH L37', P3, 37, T5, () => ['boss_sephiroth'], 6],
+  ['SEPHIROTH-2 L38', P3, 38, T5, () => ['boss_sephiroth2'], 6],
+  ['FORGOTTEN L48', P3, 48, T5, () => ['boss_forgotten'], 6]
 ];
 for (const [name, party, lv, gear, en, potions] of stages) {
   let agg = { w: 0, r: 0, h: 0, n: 0 };

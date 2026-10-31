@@ -293,8 +293,8 @@ class FieldScene {
     const m = this.map, s = 1.5, w = m.w * s, h = m.h * s, x0 = SW - w - 6, y0 = SH - h - 6;
     if (!this.mini) {
       const c = mkCanvas(m.w, m.h), g = c.getContext('2d');
-      const col = { water: '#2a5ac8', grass: '#4a9a3a', flowers: '#4a9a3a', forest: '#2a6a2a', mountain: '#8a6a4a', snow: '#e8eef8', snowtree: '#9ab0b0',
-        smountain: '#7a8aa0', sand: '#e0c070', dune: '#d0b060', cactus: '#d0b060', dmountain: '#a05a3a', waste: '#3a2a40', wmountain: '#2a1a2a' };
+      const col = { water: '#2a5ac8', grass: '#4a9a3a', flowers: '#4a9a3a', forest: '#2a6a2a', mountain: '#8a6a4a', snow: '#c8a65c', snowtree: '#9aa060',
+        smountain: '#9a7a52', sand: '#e4cc8c', dune: '#dcc080', cactus: '#dcc080', dmountain: '#b0703a', waste: '#d8c088', wmountain: '#8a7a60' };
       this.miniCol = col; this.mini = c; this.miniG = g;
     }
     const g = this.miniG;

@@ -95,8 +95,9 @@ class ListBox {
 }
 
 // ------------------------------------------------------------ cutscene backdrop
-const SCENE_STAGE = { intro: 'night', festival: 'night', woods: 'woods', boss1: 'woods', port: 'grass', boss2: 'cave', snow: 'snow', boss3: 'ice',
-  desert: 'desert', boss4: 'ruins', rift: 'rift', final1: 'rift', final2: 'rift', ending: 'day' };
+const SCENE_STAGE = { intro: 'villa', graveyard: 'graveyard', flashback: 'villa', forest: 'woods', boss1: 'woods', port: 'beach', boss2: 'scrub',
+  hills: 'scrub', boss3: 'canyon', coast: 'beach', boss4: 'cave', map: 'cave', boat: 'sea', jetski: 'sea', island: 'island', kyo: 'island',
+  theater: 'theater', final1: 'theater', final2: 'theater', sephiroth: 'theater', ending: 'day' };
 class BackdropScene {
   constructor(key, caption) { this.key = key; this.caption = caption; this.opaque = true; this.t = 0; }
   update() { this.t++; }
@@ -236,7 +237,7 @@ class ShopScene {
         const m = S.members[pid];
         if (!canEquip(CAST[pid].job, d)) { txt(CAST[pid].name.slice(0, 6), 210, yy, '#606070'); txt('--', 308, yy, '#606070', 'right'); yy += 13; continue; }
         const cur = stats(m), m2 = { ...m, eq: { ...m.eq, [d.slot]: it.id } }, nw = stats(m2);
-        const key = d.slot === 'weapon' ? (CAST[pid].job === 'mage' || CAST[pid].job === 'healer' ? 'mag' : 'atk') : 'def';
+        const key = d.slot === 'weapon' ? (CAST[pid].job === 'monk' ? 'mag' : 'atk') : 'def';
         const diff = d.slot === 'acc' ? 0 : nw[key] - cur[key];
         txt(CAST[pid].name.slice(0, 6), 210, yy);
         txt((diff > 0 ? '+' : '') + diff, 308, yy, diff > 0 ? '#80ff80' : diff < 0 ? '#ff8080' : '#fff', 'right');

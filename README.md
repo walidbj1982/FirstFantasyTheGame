@@ -1,12 +1,27 @@
-# First Fantasy — The Game
+# First Fantasy — The Pendant
 
-A short, classic-style JRPG inspired by the *First Fantasy* movie (parts 1 & 2). It runs in any
-web browser, on desktop or phone, with nothing to install.
+A short PS1-style 3D RPG based on the *First Fantasy* fan movie (parts 1 & 2) by Walid Ben Jemia
+and friends. It runs in any web browser, on desktop or phone, with nothing to install.
 
-> **Status:** the engine, world, battle system and a full five-chapter campaign are done and playable.
-> The **cast, dialogue and place names are placeholders** because the movie could not be watched
-> while this was built. They all live in a few data files so the movie's characters, actors'
-> photos, voices and scenes can be dropped in. See [Make it *your* movie](#make-it-your-movie).
+**Story:** Sephiroth is hunting the Pendant, a relic powerful enough to destroy the universe.
+Terry Bogard, Ryu and Barret set out to stop him. The game follows the movie scene by scene:
+- Terry's flashback at the graveyard
+- the night run through the Dark Forest
+- Barret vs Rufus
+- Ryu's fight with the second villain
+- the third villain and the island map
+- the boat crossing and the jet ski attack
+- Kyo Kusanagi on the island
+- Aeris and the final battle with Sephiroth at the Roman theater
+
+**Built from the movie so far:** character faces and costumes come from frames of the movie
+(`assets/reference`, cropped into `assets/portraits`), and movie stills are used as cutscene
+backdrops (`assets/scenes`). Not yet known from the movie: the names of the second and third
+villains (placeholders: Black Viper, The Cartographer), the Stranger's look, Terry's costume
+apart from the cap, and the actors' names (`actor` in `js/data/cast.js`).
+
+The character names (Terry Bogard, Ryu, Barret, Sephiroth, Rufus, Kyo Kusanagi, Aeris) belong to
+their publishers. That's fine for a personal fan project like the movie, but don't sell the game.
 
 ## Play
 
@@ -37,14 +52,16 @@ The game saves to the browser (3 slots). Save on the world map, at blue crystals
   4–6 hours. That's an estimate from encounter rates and the level curve, not a timed playthrough.
   The optional shrine and superboss add more. To lengthen it, raise `floors` (and add `loot` rows)
   per dungeon in `js/data/world.js`.
-- **Party of four**, each with a job: Knight (heavy hits, party buffs), Mage (elemental magic),
-  Healer (cures, revives, Holy), Rogue (steals rare items, fast multi-hits). Each has 8–14 skills learned by level.
+- **Party of three**, each with their own fighting style: Terry the Brawler (Ground Wave, Knuckle Rush,
+  Geyser), Ryu the Martial Artist (Ki Blast, Rising Dragon, Chi Heal, Revive) and Barret the Gunner
+  (Big Shot, Rapid Fire, Grenade, Gatling). Each learns 8–12 moves by level.
 - **Active-time battles** in the style of the 16-bit classics: ATB gauges, elemental
   weaknesses, status effects (poison, sleep, silence, blind, slow, protect, shell, haste, regen),
   and a **Burst** gauge that fills as a hero takes damage and unleashes a named super move.
-- **Villains as bosses:** four villains from the cast fight you in person. The final battle has two phases.
-- **World:** a 72×52 overworld with four regions (grassland, coast, snowfields, desert) unlocked
-  in story order, plus the Rift wasteland. Dungeon floors are generated from a fixed seed, so each
+- **Villains as bosses:** the Stranger, Rufus and his bodyguards, two more villains, a jet ski gang at sea,
+  Kyo Kusanagi (who runs away mid-fight, like in the movie) and Sephiroth in two phases.
+- **World:** a sunny Mediterranean coast with whitewashed towns, olive hills, a canyon and beaches,
+  unlocked in story order, plus the island reached by boat. Dungeon floors are generated from a fixed seed, so each
   floor is the same every time. Treasure chests hold gear you can't buy.
 - **Economy:** shops with gear upgrades per town, inns, sell-back, and steal-only items.
 - **Original chiptune soundtrack** (title, town, field, dungeon, battle, boss, final, victory, ending),

@@ -52,14 +52,14 @@ const out = process.argv[3] || '.';
   await until(() => S.party.length === 3 && !Ev.field.lock, 'KeyZ', 300);
   console.log('party after ch2:', await page.evaluate(() => S.party.join(',')));
   // Hask fight with minions, 4 members
-  await page.evaluate(() => { addMember('hero4', 22); for (const id of S.party) { const m = S.members[id]; m.lv = 24; const st = stats(m); m.hp = st.maxhp; m.mp = st.maxmp; } Ev.field.run(() => Ev.battle(['boss_hask'], { boss: true, noRun: true, bg: 'ice' })); });
+  await page.evaluate(() => { for (const id of S.party) { const m = S.members[id]; m.lv = 24; const st = stats(m); m.hp = st.maxhp; m.mp = st.maxmp; } Ev.field.run(() => Ev.battle(['boss_viper'], { boss: true, noRun: true, bg: 'canyon' })); });
   await page.waitForTimeout(1600); await shot('19_hask');
   // try skill menu
   await until(() => Scenes.top().menu); await press('ArrowDown'); await press('KeyZ'); await page.waitForTimeout(200); await shot('20_skillmenu'); await press('KeyX', 2);
   await until(() => !(Scenes.top() instanceof BattleScene), 'KeyZ', 900);
-  console.log('after hask top:', await top());
+  console.log('after viper top:', await top());
   // final boss look
-  await page.evaluate(() => { if (!(Scenes.top() instanceof FieldScene)) return; for (const id of S.party) { const m = S.members[id]; m.lv = 60; const st = stats(m); m.hp = st.maxhp; m.mp = st.maxmp; } Ev.field.run(() => Ev.battle(['boss_vexis2'], { boss: true, noRun: true, bg: 'rift', music: 'final' })); });
+  await page.evaluate(() => { if (!(Scenes.top() instanceof FieldScene)) return; for (const id of S.party) { const m = S.members[id]; m.lv = 60; const st = stats(m); m.hp = st.maxhp; m.mp = st.maxmp; } Ev.field.run(() => Ev.battle(['boss_sephiroth2'], { boss: true, noRun: true, bg: 'rift', music: 'final' })); });
   await page.waitForTimeout(1600); await shot('21_final');
   await until(() => !(Scenes.top() instanceof BattleScene), 'KeyZ', 900);
   // save & load

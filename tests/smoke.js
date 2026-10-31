@@ -25,7 +25,7 @@ const out = process.argv[3] || '.';
   const st = await page.evaluate(() => ({ party: S.party, map: S.pos && S.pos.map, top: Scenes.top().constructor.name, flags: S.flags }));
   console.log('state', JSON.stringify(st));
   // force a battle
-  await page.evaluate(() => { Ev.field.run(() => Ev.battle(['jelly', 'goblin', 'cavebat'], { bg: 'grass' })); });
+  await page.evaluate(() => { Ev.field.run(() => Ev.battle(['jelly', 'thug', 'seagull'], { bg: 'grass' })); });
   await page.waitForTimeout(3500);
   await shot('04_battle');
   for (let i = 0; i < 80; i++) { await press('KeyZ', 1, 100); const t = await page.evaluate(() => Scenes.top().constructor.name); if (t !== 'BattleScene') break; }
@@ -33,11 +33,11 @@ const out = process.argv[3] || '.';
   await shot('05_after_battle');
   console.log('after', await page.evaluate(() => JSON.stringify({ top: Scenes.top().constructor.name, lv: S.party.map(id => S.members[id].lv), gil: S.gil })));
   // world map
-  await page.evaluate(() => Ev.field.goto('world', 9, 34, 'down'));
+  await page.evaluate(() => { Ev.field.goto('world', 9, 34, 'down'); });
   await page.waitForTimeout(1200);
   await shot('06_world');
   // dungeon
-  await page.evaluate(() => Ev.field.goto('dungeon1:0'));
+  await page.evaluate(() => { S.flags.forest_enter = true; Ev.field.goto('dungeon1:0'); });
   await page.waitForTimeout(1200);
   await shot('07_dungeon');
   // menu

@@ -3,31 +3,35 @@
 // =====================================================================
 window.CONFIG = {
   title: 'FIRST FANTASY',
-  subtitle: 'The Game',
-  credits: 'Based on the movie by Walid & friends',
+  subtitle: 'The Pendant',
+  credits: 'Based on the movie by Walid Ben Jemia & friends',
 
-  // Names of every place in the world. Rename them after your movie's locations.
+  // Places from the movie. Rename freely.
   places: {
-    world: 'Aerith Vale',
-    town1: 'Elmrest',     dungeon1: 'Whisper Woods',
-    town2: 'Saltmere',    dungeon2: 'Sunken Grotto',
-    town3: 'Hollowpeak',  dungeon3: 'Frost Keep',
-    town4: 'Duneveil',    dungeon4: 'Ember Ruins',
-    dungeon5: 'Rift Citadel', secret: 'Forgotten Shrine'
+    world: 'The Coast',
+    town1: 'Old Town',       dungeon1: 'Dark Forest',
+    town2: 'Harbor Town',    dungeon2: 'Dry Hills',
+    town3: 'Olive Village',  dungeon3: 'Rocky Canyon',
+    town4: 'Fishing Port',   dungeon4: 'Cliff Hideout',
+    dungeon5: 'Roman Theater', island: 'The Island', secret: 'Forgotten Shrine'
   },
 
-  // Movie stills used as backdrops for cutscenes and boss battles.
-  // Extract them with tools/extract_frames.sh, then point each key at a file,
-  // e.g.  intro: 'assets/scenes/intro.jpg'.   null = drawn backdrop.
+  // Stills from the movie (assets/scenes, cut with tools/save_still.sh).
+  // A key set to null is staged in 3D instead.
   scenes: {
-    intro: null, festival: null, woods: null, boss1: null,
-    port: null, boss2: null, snow: null, boss3: null,
-    desert: null, boss4: null, rift: null, final1: null, final2: null, ending: null
+    intro: 'assets/scenes/title_gate.jpg',
+    forest: 'assets/scenes/dark_forest.jpg',
+    map: 'assets/scenes/world_map.jpg',
+    boat: 'assets/scenes/boat.jpg',
+    island: 'assets/scenes/island.jpg',
+    sephiroth: 'assets/scenes/sephiroth.jpg',
+    graveyard: null, flashback: null, festival: null, boss1: null, port: null, boss2: null, hills: null, boss3: null,
+    coast: null, boss4: null, jetski: null, kyo: null, theater: null, final1: null, final2: null, ending: null
   },
 
-  // Replace the built-in chiptune music with your movie's soundtrack.
+  // Replace the built-in chiptune music with the movie's soundtrack.
   // Keys: title, town, field, dungeon, battle, boss, final, victory, sad, ending
   music: {
-    // title: 'assets/music/main_theme.mp3',
+    // battle: 'assets/music/battle.mp3',
   }
 };

@@ -136,13 +136,13 @@ class BattleScene {
     if (Input.pressed('a')) {
       const c = M.cmds[M.i].id; Sound.play('confirm');
       if (c === 'attack') { M.pending = { skill: 'attack' }; this.beginTarget('enemy'); }
-      else if (c === 'burst') { M.pending = { burst: true }; this.beginTarget(h.job === 'knight' ? 'enemy' : h.job === 'healer' ? 'allies' : 'enemies'); }
+      else if (c === 'burst') { M.pending = { burst: true }; this.beginTarget(JOBS[h.job].burst === 'single' ? 'enemy' : 'enemies'); }
       else if (c === 'defend') this.commit({ defend: true }, []);
       else if (c === 'run') this.commit({ run: true }, []);
       else if (c === 'skill') {
         const items = knownSkills(h.m).map(id => {
           const s = SKILLS[id];
-          const silenced = h.status.silence && (h.job === 'mage' || h.job === 'healer');
+          const silenced = h.status.silence && (s.kind === 'magic' || s.kind === 'heal' || s.kind === 'revive');
           return { label: s.name, right: s.mp, act: { skill: id }, target: s.target, disabled: h.mp < s.mp || silenced };
         });
         if (!items.length) { Sound.play('error'); return; }
@@ -329,6 +329,7 @@ class BattleScene {
     if (dmg < 0) { t.hp = Math.min(t.maxhp, t.hp - dmg); this.pop(t, -dmg, '#80ff80'); return; }
     t.hp = Math.max(0, t.hp - dmg);
     t.flash = 10; this.pop(t, dmg, crit ? '#ffe040' : '#fff', crit);
+    if (t.isEnemy && t.fleeAt && t.hp > 0 && t.hp < t.maxhp * t.fleeAt) { t.hp = 0; t.fled = true; this.say(t.name + ' ran away!', 90); }
     Sound.play(crit ? 'crit' : 'hit'); if (crit) G.shake = 8;
     if (t.status.sleep) delete t.status.sleep;
     if (!t.isEnemy) {
@@ -340,7 +341,7 @@ class BattleScene {
   async reapDead() {
     let any = false;
     for (const e of this.enemies) if (!e.dead && e.hp <= 0) {
-      e.dead = true; any = true; Sound.play('enemydie');
+      e.dead = true; any = true; Sound.play(e.fled ? 'stairs' : 'enemydie');
       this.won.exp += e.exp; this.won.gil += e.gil;
       if (e.drop && chance(e.drop[1])) this.won.items.push(e.drop[0]);
     }
@@ -386,7 +387,8 @@ class BattleScene {
     this.say(c.burstName || 'Burst', 80);
     Sound.clip((c.clips || {}).burst); Sound.play('burst'); G.flash = 12;
     await this.approach(a, 'cast'); await sleep(20);
-    if (a.job === 'healer') {
+    const bt = JOBS[a.job].burst;
+    if (bt === 'heal') {
       this.effect('holy', this.heroes, a); await sleep(20);
       for (const t of this.heroes) {
         if (t.hp <= 0) { t.hp = Math.floor(t.maxhp * 0.5); t.atb = 0; this.pop(t, 'Revived', '#80ff80'); continue; }
@@ -394,10 +396,10 @@ class BattleScene {
         for (const k in t.status) if (STATUS[k] && STATUS[k].bad) delete t.status[k];
         t.status.regen = STATUS.regen.turns;
       }
-    } else if (a.job === 'knight') {
+    } else if (bt === 'single') {
       const t = this.retarget(act)[0] || pick(this.aliveEnemies);
       if (t) { this.effect('holy', [t], a); await sleep(14); const r = calcDamage(a, t, { kind: 'phys', pow: 4.2, el: 'holy' }, this, true); this.damage(t, r.dmg, true); G.shake = 14; }
-    } else if (a.job === 'mage') {
+    } else if (bt === 'all') {
       this.effect('flare', this.aliveEnemies, a); await sleep(20);
       for (const t of this.aliveEnemies) { const r = calcDamage(a, t, { kind: 'magic', pow: 26 + a.lv * 1.4 }, this, true); this.damage(t, r.dmg, false); }
       G.shake = 14;
@@ -545,7 +547,7 @@ class BattleScene {
     win(0, y, 112, 76);
     const names = {};
     for (const e of this.aliveEnemies) names[e.name] = (names[e.name] || 0) + 1;
-    Object.entries(names).slice(0, 5).forEach(([n, c], i) => { const max = c > 1 ? 9 : 12; txt((n.length > max ? n.slice(0, max - 1) + '.' : n) + (c > 1 ? ' x' + c : ''), 8, y + 8 + i * 13, '#fff', 'left'); });
+    Object.entries(names).slice(0, 5).forEach(([n, c], i) => { const max = c > 1 ? 9 : 12; txt((n.length > max ? n.slice(0, max - 1).trimEnd() + '.' : n) + (c > 1 ? ' x' + c : ''), 8, y + 8 + i * 13, '#fff', 'left'); });
     win(112, y, 208, 76);
     this.heroes.forEach((h, i) => {
       const yy = y + 7 + i * 17;
@@ -604,7 +606,7 @@ function calcDamage(a, t, s, battle, noMiss) {
     dmg = atk * (a.isEnemy ? 1.1 + a.lv * 0.055 : 1.2 + a.lv * 0.08) * (s.pow || 1) * 60 / (60 + t.def);
     if (a.status.brave) dmg *= 1.5;
     if (t.status.protect) dmg *= 0.5;
-    if (chance(a.job === 'rogue' ? 0.14 : 0.06)) { crit = true; dmg *= 1.8; }
+    if (chance(a.job === 'brawler' ? 0.12 : 0.06)) { crit = true; dmg *= 1.8; }
   } else {
     dmg = (s.pow || 10) * (a.mag + a.lv) / 6 * 60 / (60 + t.mdef);
     if (t.status.shell) dmg *= 0.5;
@@ -633,6 +635,7 @@ class BattleView {
     if (!x.isEnemy) m = buildCharacter(x.look, x.id, x.job);
     else if (x.kind === 'human') { m = buildCharacter(CAST[x.cast].look, x.cast, null); m.scale.setScalar(x.size / 2); }
     else { m = buildMonster(x.kind, x.pal); m.scale.setScalar(x.size / 2); }
+    if (x.aura) { const a = add(m, ico(1.0, 1), '#5010a0', 0, 1.1, 0, { emissive: 0x401080, opacity: 0.22 }); a.userData.aura = true; m.userData.auraMesh = a; }
     m.userData.base = m.scale.x;
     this.scene.add(m); return (x.model = m);
   }
@@ -655,6 +658,7 @@ class BattleView {
       m.position.set(x3, 0, z3 + (e.flash > 0 ? 0.3 : 0)); m.rotation.y = 0;
       m.visible = !(e.flash > 0 && e.flash % 4 < 2);
       if (e.dead) { const a = Math.max(0, e.alpha); m.scale.set(m.userData.base * (1 + (1 - a) * 0.3), m.userData.base * a, m.userData.base * (1 + (1 - a) * 0.3)); }
+      if (m.userData.auraMesh) m.userData.auraMesh.scale.setScalar(1 + Math.sin(t * 0.08) * 0.08);
       if (e.kind === 'human') poseCharacter(m, e.flash > 0 ? 'attack' : 'idle', e.flash > 0 ? 15 : t);
       else animateMonster(m, t, e.flash > 0);
       this.anchor(e, m, m.userData.h * 0.5);

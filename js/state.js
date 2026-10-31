@@ -4,10 +4,9 @@
 let S = null; // current game state
 
 const STARTING_GEAR = {
-  knight: { weapon: 'bronzesword', armor: 'chainmail', acc: null },
-  mage: { weapon: 'oakrod', armor: 'cottonrobe', acc: null },
-  healer: { weapon: 'ashstaff', armor: 'cottonrobe', acc: null },
-  rogue: { weapon: 'knife', armor: 'leathervest', acc: null }
+  brawler: { weapon: 'leathergloves', armor: 'leathervest', acc: null },
+  monk: { weapon: 'clothwraps', armor: 'cottonrobe', acc: null },
+  gunner: { weapon: 'gunarm', armor: 'chainmail', acc: null }
 };
 
 function newGame() {

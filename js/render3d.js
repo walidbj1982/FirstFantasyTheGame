@@ -87,60 +87,80 @@ function buildCharacter(look, castId, job) {
   const root = new THREE.Group(), P = {};
   const hood = look.hairStyle === 'hood';
   const hair = hood ? look.outfit2 : look.hair, out = look.outfit, out2 = look.outfit2 || shade(look.outfit, -0.3);
-  const acc = look.accent || '#e0c050', pants = look.pants || '#333344', skin = look.skin;
+  const acc = look.accent || '#e0c050', skin = look.skin;
+  const dress = look.dress, pants = dress ? skin : (look.pants || '#333344'), boots = look.boots || out2;
+  const upper = look.sleeveless ? skin : (look.sleeve || out), lower = (look.sleeveless || look.sleeve) ? skin : out2;
+  const shirt = look.shirt || (look.sleeve && look.sleeve !== out ? look.sleeve : null);
   P.hips = pivot(root, 0, 0.8, 0);
   P.torso = pivot(P.hips, 0, 0, 0);
   add(P.torso, box(0.62, 0.62, 0.4), out, 0, 0.36, 0);
+  if (shirt) add(P.torso, box(0.22, 0.56, 0.05), shirt, 0, 0.38, 0.19);
   add(P.torso, box(0.66, 0.1, 0.44), acc, 0, 0.06, 0);
-  add(P.torso, box(0.3, 0.16, 0.06), out2, 0, 0.56, 0.2);
-  for (const s of [-1, 1]) add(P.torso, box(0.26, 0.16, 0.34), out2, s * 0.38, 0.64, 0);
+  if (!look.sleeveless) for (const s of [-1, 1]) add(P.torso, box(0.26, 0.16, 0.34), look.sleeve && !shirt ? upper : out2, s * 0.38, 0.64, 0);
+  if (dress) add(P.hips, cyl(0.3, 0.5, 0.78, 8), dress, 0, -0.32, 0);
   P.head = pivot(P.torso, 0, 0.74, 0);
   add(P.head, ico(0.36), skin, 0, 0.32, 0, { s: [1, 1.05, 0.84] });
   const fm = new THREE.MeshLambertMaterial({ map: faceTexture(look, castId), transparent: false }); fm.onBeforeCompile = SNAP;
   add(P.head, GEO.face || (GEO.face = new THREE.PlaneGeometry(0.42, 0.42)), fm, 0, 0.28, 0.305);
   const style = look.hairStyle || 'short';
-  add(P.head, ico(0.39), hair, 0, 0.44, -0.07, { s: [1.02, 0.78, 0.86] });
-  add(P.head, box(0.6, 0.12, 0.12), hair, 0, 0.55, 0.22, { rx: 0.35 });
+  if (style === 'buzz') add(P.head, ico(0.37), hair, 0, 0.4, -0.04, { s: [1.0, 0.78, 0.86] });
+  else { add(P.head, ico(0.39), hair, 0, 0.44, -0.07, { s: [1.02, 0.78, 0.86] }); add(P.head, box(0.6, 0.12, 0.12), hair, 0, 0.55, 0.22, { rx: 0.35 }); }
   if (style === 'spiky') {
     [[0, 0.75, -0.1, -0.5, 0], [0.22, 0.68, -0.15, -0.7, -0.6], [-0.22, 0.68, -0.15, -0.7, 0.6], [0.3, 0.5, -0.2, -1.2, -1.1],
       [-0.3, 0.5, -0.2, -1.2, 1.1], [0, 0.55, -0.35, -1.6, 0], [0.16, 0.72, 0.1, 0.3, -0.4], [-0.16, 0.72, 0.1, 0.35, 0.45]]
       .forEach(([x, y, z, rx, rz]) => add(P.head, cone(0.12, 0.42, 4), hair, x, y, z, { rx, rz }));
   } else if (style === 'long') {
-    add(P.head, box(0.66, 0.78, 0.16), hair, 0, 0.1, -0.27);
-    add(P.head, box(0.14, 0.5, 0.3), hair, 0.33, 0.18, -0.05); add(P.head, box(0.14, 0.5, 0.3), hair, -0.33, 0.18, -0.05);
+    add(P.head, box(0.66, dress ? 0.9 : 0.82, 0.16), hair, 0, dress ? 0.05 : 0.08, -0.27);
+    add(P.head, box(0.14, 0.55, 0.3), hair, 0.33, 0.16, -0.05); add(P.head, box(0.14, 0.55, 0.3), hair, -0.33, 0.16, -0.05);
   } else if (style === 'hood') {
     add(P.head, ico(0.43), hair, 0, 0.36, -0.08, { s: [1.05, 0.95, 1] });
     add(P.head, cone(0.16, 0.4, 5), hair, 0, 0.45, -0.42, { rx: -2.2 });
   }
-  P.arms = [];
-  for (const s of [-1, 1]) {
-    const sh = pivot(P.torso, s * 0.42, 0.56, 0);
-    add(sh, box(0.17, 0.34, 0.18), out, 0, -0.17, 0);
-    const el = pivot(sh, 0, -0.34, 0);
-    add(el, box(0.21, 0.28, 0.22), out2, 0, -0.13, 0);
-    const hand = pivot(el, 0, -0.32, 0);
-    add(hand, ico(0.11, 0), skin, 0, 0, 0);
-    P.arms.push({ sh, el, hand });
+  if (look.cap) {
+    add(P.head, ico(0.4, 1), look.cap, 0, 0.52, -0.03, { s: [1.04, 0.62, 1.06] });
+    add(P.head, box(0.44, 0.04, 0.32), look.cap, 0, 0.5, 0.36, { rx: -0.12 });
   }
+  if (look.headband) {
+    add(P.head, cyl(0.385, 0.385, 0.09, 10), look.headband, 0, 0.5, -0.02, { s: [1, 1, 0.88] });
+    for (const s of [-1, 1]) add(P.head, box(0.07, 0.32, 0.03), look.headband, s * 0.06, 0.38, -0.36, { rz: s * 0.25, rx: 0.3 });
+  }
+  if (look.glasses) { for (const s of [-1, 1]) add(P.head, box(0.15, 0.09, 0.03), '#0a0a0a', s * 0.1, 0.33, 0.33); add(P.head, box(0.36, 0.025, 0.03), '#0a0a0a', 0, 0.35, 0.33); }
+  if (look.beard) add(P.head, box(0.42, 0.16, 0.1), look.beard, 0, 0.1, 0.24);
+  P.arms = [];
+  [-1, 1].forEach((s, i) => {
+    const sh = pivot(P.torso, s * 0.42, 0.56, 0);
+    add(sh, box(0.17, 0.34, 0.18), upper, 0, -0.17, 0);
+    const el = pivot(sh, 0, -0.34, 0);
+    const hand = pivot(el, 0, -0.32, 0);
+    if (i === 0 && look.gunArm) {
+      add(el, box(0.26, 0.34, 0.26), '#9a9ea8', 0, -0.15, 0);
+      for (const [x, z] of [[-0.05, 0.05], [0.05, 0.05], [0, -0.05]]) add(el, cyl(0.04, 0.04, 0.32, 6), '#4a4c52', x, -0.44, z);
+      add(el, cyl(0.15, 0.15, 0.06, 8), '#6a6e78', 0, -0.32, 0);
+    } else {
+      add(el, box(0.21, 0.28, 0.22), lower, 0, -0.13, 0);
+      add(hand, ico(0.11, 0), skin, 0, 0, 0);
+    }
+    if (job === 'brawler') add(hand, box(0.2, 0.17, 0.21), '#7a2a1a', 0, -0.02, 0);
+    if (job === 'monk') add(el, box(0.23, 0.08, 0.24), '#c4201c', 0, -0.25, 0);
+    P.arms.push({ sh, el, hand });
+  });
   P.legs = [];
   for (const s of [-1, 1]) {
     const hip = pivot(P.hips, s * 0.17, 0, 0);
     add(hip, box(0.23, 0.38, 0.25), pants, 0, -0.19, 0);
     const kn = pivot(hip, 0, -0.38, 0);
     add(kn, box(0.21, 0.28, 0.23), pants, 0, -0.14, 0);
-    add(kn, box(0.25, 0.14, 0.36), out2, 0, -0.34, 0.05);
+    add(kn, box(0.25, 0.14, 0.36), boots, 0, -0.34, 0.05);
     P.legs.push({ hip, kn });
   }
-  if (job) addWeapon(P.arms[0].hand, job);
+  if (look.weapon) addWeapon(P.arms[0].hand, look.weapon);
   root.userData = { P, kind: 'human', h: 2.2 };
   return root;
 }
-function addWeapon(hand, job) {
+function addWeapon(hand, kind) {
   const w = pivot(hand, 0, 0, 0); w.rotation.x = Math.PI / 2;
-  if (job === 'knight') { add(w, box(0.07, 1.25, 0.14), '#d8dce8', 0, 0.75, 0); add(w, box(0.36, 0.07, 0.1), '#c0a040', 0, 0.12, 0); add(w, box(0.06, 0.22, 0.06), '#5a3a1a', 0, -0.02, 0); }
-  else if (job === 'mage') { add(w, cyl(0.035, 0.035, 1.0), '#6a4a2a', 0, 0.35, 0); add(w, ico(0.1, 0), '#ff5040', 0, 0.9, 0, { emissive: 0x802010 }); }
-  else if (job === 'healer') { add(w, cyl(0.035, 0.035, 1.4), '#e0e0f0', 0, 0.5, 0); add(w, cyl(0.16, 0.16, 0.04, 8), '#e0c040', 0, 1.2, 0, { rx: Math.PI / 2 }); }
-  else if (job === 'rogue') { add(w, box(0.05, 0.45, 0.1), '#d8dce8', 0, 0.3, 0); add(w, box(0.18, 0.05, 0.08), '#5a5a5a', 0, 0.06, 0); }
+  if (kind === 'katana') { add(w, box(0.05, 2.0, 0.1), '#e0e4ec', 0, 1.1, 0); add(w, box(0.16, 0.05, 0.16), '#c0a040', 0, 0.1, 0); add(w, box(0.06, 0.3, 0.06), '#202020', 0, -0.06, 0); }
+  else if (kind === 'sword') { add(w, box(0.07, 1.25, 0.14), '#d8dce8', 0, 0.75, 0); add(w, box(0.36, 0.07, 0.1), '#c0a040', 0, 0.12, 0); }
 }
 // state: idle | walk | attack | cast | hurt | kneel | ko | victory
 function poseCharacter(m, state, t) {
@@ -286,12 +306,31 @@ function buildMonster(kind, pal) {
       h = 2.0; break;
     }
     case 'knight': {
-      const k = buildCharacter({ skin: c2, hair: c3, hairStyle: 'short', outfit: c1, outfit2: c2, accent: A, pants: c2, eyes: E }, null, 'knight');
+      const k = buildCharacter({ skin: c2, hair: c3, hairStyle: 'short', outfit: c1, outfit2: c2, accent: A, pants: c2, eyes: E, weapon: 'sword' }, null, null);
       root.add(k); parts.human = k;
       add(k.userData.P.head, ico(0.42, 1), c3, 0, 0.35, 0, { s: [1, 1, 1.05] });
       add(k.userData.P.head, box(0.4, 0.06, 0.05), E, 0, 0.3, 0.42, eyeOpt);
       add(k.userData.P.arms[1].hand, box(0.08, 0.6, 0.5), c3, -0.06, -0.05, 0.1);
       h = 2.2; break;
+    }
+    case 'thug': {
+      const k = buildCharacter({ skin: pal[2] || '#c89a70', hair: pal[3] || '#1a1410', hairStyle: 'short', outfit: c1, outfit2: shade(c1, -0.25), sleeve: c1,
+        accent: '#2a2a2a', pants: pal[1] || '#3a4a6a', boots: '#2a2a2a', eyes: '#101010' }, null, null);
+      root.add(k); parts.human = k; h = 2.2; break;
+    }
+    case 'jetski': {
+      parts.body = pivot(root, 0, 0, 0);
+      add(parts.body, box(0.7, 0.32, 1.6), c1, 0, 0.25, 0); add(parts.body, cone(0.35, 0.6, 4), c1, 0, 0.25, 1.05, { rx: Math.PI / 2, ry: Math.PI / 4 });
+      add(parts.body, box(0.72, 0.08, 1.62), c2, 0, 0.1, 0); add(parts.body, box(0.36, 0.18, 0.7), '#141414', 0, 0.48, -0.2);
+      add(parts.body, box(0.6, 0.06, 0.06), '#303030', 0, 0.85, 0.45); add(parts.body, box(0.06, 0.4, 0.06), '#303030', 0, 0.65, 0.42);
+      const rider = buildCharacter({ skin: pal[2] || '#c89a70', hair: pal[3] || '#101010', hairStyle: 'short', outfit: c2, outfit2: shade(c2, -0.2), sleeve: c2,
+        accent: c1, pants: '#2a2a3a', boots: '#1a1a1a', eyes: '#101010', glasses: true }, null, null);
+      rider.position.set(0, 0.0, -0.15); parts.body.add(rider); parts.rider = rider;
+      const P = rider.userData.P; P.hips.position.y = 0.62;
+      for (const l of P.legs) { l.hip.rotation.x = -1.3; l.kn.rotation.x = 1.4; }
+      for (const a of P.arms) { a.sh.rotation.x = -1.1; a.el.rotation.x = -0.3; }
+      for (let i = 0; i < 3; i++) add(parts.body, ico(0.12, 0), '#e8f4ff', (i - 1) * 0.3, 0.1, -0.95, { opacity: 0.8 });
+      h = 1.6; break;
     }
     case 'dragon': {
       parts.body = pivot(root, 0, 0, 0);
@@ -324,25 +363,28 @@ function animateMonster(m, t, hit) {
     case 'crab': parts.claws.forEach((c, i) => { c.rotation.x = Math.sin(t * 0.1 + i * 2) * 0.3; }); break;
     case 'wraith': parts.body.position.y = 0.3 + s * 0.15; parts.body.rotation.y = Math.sin(t * 0.03) * 0.2; break;
     case 'golem': parts.arms.forEach((a, i) => { a.rotation.x = Math.sin(t * 0.05 + i * Math.PI) * 0.15; }); break;
-    case 'knight': poseCharacter(parts.human, hit ? 'attack' : 'idle', t); break;
+    case 'knight': case 'thug': poseCharacter(parts.human, hit ? 'attack' : 'idle', t); break;
+    case 'jetski': parts.body.position.y = Math.sin(t * 0.12) * 0.08; parts.body.rotation.z = Math.sin(t * 0.07) * 0.08; parts.body.rotation.x = Math.sin(t * 0.09) * 0.05; break;
     default: if (parts.body) parts.body.position.y = Math.abs(s) * 0.04;
   }
 }
 
 // ------------------------------------------------------------------ stages (battle, cutscene, title)
 const STAGES = {
-  grass: { sky: ['#4a7ad8', '#bcdcf0'], ground: ['#4a8a34', '#3a7228', '#5a9a40'], fog: '#a8c8e0', props: 'trees' },
-  night: { sky: ['#06061a', '#3a2a5a'], ground: ['#2a3a2a', '#1e2c1e', '#344434'], fog: '#2a2240', props: 'trees', dark: true },
-  woods: { sky: ['#14301e', '#3a6a3a'], ground: ['#2a5a22', '#20481a', '#346a2a'], fog: '#2a4a2a', props: 'forest', dark: true },
+  grass: { sky: ['#3a7ad8', '#c8e4f8'], ground: ['#6a9a3a', '#5a8a30', '#7aaa48'], fog: '#b8d8f0', props: 'pines' },
+  night: { sky: ['#06061a', '#2a2a4a'], ground: ['#2a3a2a', '#1e2c1e', '#344434'], fog: '#1a1a30', props: 'pines', dark: true },
+  woods: { sky: ['#020208', '#101820'], ground: ['#1a2a18', '#141f12', '#22301e'], fog: '#05080a', props: 'forest', dark: true, night: true },
+  beach: { sky: ['#2a78d8', '#cfeaff'], ground: ['#e8d4a0', '#dcc490', '#f0e0b0'], fog: '#d0e8ff', props: 'palms', sea: true },
+  scrub: { sky: ['#4a90e0', '#f0e2b8'], ground: ['#c8a65c', '#b8964c', '#d8b66c'], fog: '#e8dab4', props: 'olives' },
+  canyon: { sky: ['#c87840', '#f8d8a0'], ground: ['#c07848', '#b06838', '#d08858'], fog: '#e8b080', props: 'mesas' },
   cave: { sky: ['#05080c', '#1a2836'], ground: ['#3a4652', '#2c3640', '#465260'], fog: '#101820', props: 'stalag', dark: true },
-  snow: { sky: ['#6a80b8', '#dce8f8'], ground: ['#e0e8f4', '#c8d4e8', '#f4f8ff'], fog: '#d0dcf0', props: 'snowtrees' },
-  ice: { sky: ['#0c1a3a', '#4070b0'], ground: ['#a0c4e4', '#86aed4', '#c0dcf0'], fog: '#30508a', props: 'crystals', dark: true },
-  desert: { sky: ['#d07838', '#f4d898'], ground: ['#dcbc6c', '#c8a456', '#ecd088'], fog: '#f0c890', props: 'cacti' },
-  ruins: { sky: ['#1a0604', '#802a10'], ground: ['#946038', '#7a4a2a', '#a87048'], fog: '#501a0c', props: 'pillars', dark: true },
-  waste: { sky: ['#0a000c', '#4a204a'], ground: ['#3a2a40', '#2a1a30', '#4a3450'], fog: '#2a1030', props: 'riftcrystals', dark: true },
-  rift: { sky: ['#000000', '#3a0050'], ground: ['#2e2040', '#1e1030', '#40285a'], fog: '#18002a', props: 'riftcrystals', dark: true },
+  island: { sky: ['#1a70e0', '#d0f0ff'], ground: ['#d8c088', '#c8b078', '#8ab04a'], fog: '#d0ecff', props: 'palms', sea: true },
+  theater: { sky: ['#d06040', '#f8d0a0'], ground: ['#d8c49a', '#c8b48a', '#e8d4aa'], fog: '#f0c8a0', props: 'amphitheater' },
+  sea: { sky: ['#2a78d8', '#cfeaff'], ground: ['#2a6ac8', '#3478d0', '#2060b8'], fog: '#c0e0ff', props: 'boat', water: true },
+  graveyard: { sky: ['#04040e', '#24244a'], ground: ['#2a3424', '#20281c', '#343e2c'], fog: '#10101e', props: 'graves', dark: true },
+  villa: { sky: ['#2a78d8', '#cfeaff'], ground: ['#d8d0bc', '#ccc4b0', '#e4dcc8'], fog: '#d0e8ff', props: 'villa' },
   shrine: { sky: ['#14141c', '#50506a'], ground: ['#8a8a94', '#74747e', '#9a9aa4'], fog: '#30303c', props: 'pillars', dark: true },
-  day: { sky: ['#f0a060', '#a0d0ff'], ground: ['#5a9a40', '#4a8a34', '#6aaa4a'], fog: '#f0c8a0', props: 'trees' }
+  day: { sky: ['#f0a060', '#a0d0ff'], ground: ['#e8d4a0', '#dcc490', '#f0e0b0'], fog: '#f0c8a0', props: 'palms', sea: true }
 };
 function skyDome(top, bottom) {
   const geo = new THREE.SphereGeometry(60, 12, 8), cols = [], ct = new THREE.Color(top), cb = new THREE.Color(bottom), tmp = new THREE.Color();
@@ -355,7 +397,7 @@ function buildStage(key, seed = 1) {
   const st = STAGES[key] || STAGES.grass, scene = new THREE.Scene(), r = mulberry32(hashStr(key) + seed);
   scene.add(skyDome(st.sky[0], st.sky[1]));
   scene.fog = new THREE.Fog(st.fog, 14, 46);
-  scene.add(new THREE.HemisphereLight(st.dark ? 0x9090b8 : 0xe8f0ff, st.dark ? 0x202030 : 0x504030, st.dark ? 0.7 : 0.62));
+  scene.add(new THREE.HemisphereLight(st.dark ? 0x9090b8 : 0xe8f0ff, st.dark ? 0x202030 : 0x504030, st.night ? 0.45 : st.dark ? 0.7 : 0.62));
   const sun = new THREE.DirectionalLight(st.dark ? 0xc0c0ff : 0xfff0d8, st.dark ? 0.5 : 0.6); sun.position.set(-4, 10, 6); scene.add(sun);
   // ground: low-poly disc with per-vertex colour noise and gentle hills toward the edge
   // ground: a low-poly grid, flat in the arena and rising into hills further out
@@ -373,16 +415,43 @@ function buildStage(key, seed = 1) {
   // props stay out of the arena and out of the camera's side of the ring (+x/+z quadrant)
   const ring = (n, fn) => { for (let i = 0; i < n; i++) { const a = Math.PI * 0.62 + r() * Math.PI * 1.55, d = 12 + r() * 16; fn(Math.sin(a) * d, Math.cos(a) * d, 0.7 + r() * 0.8); } };
   const tree = (x, z, s, leaf = '#2e7a2e', snow) => { const g = pivot(scene, x, 0, z); g.scale.setScalar(s * 1.6); add(g, cyl(0.12, 0.16, 0.8), '#5a3a1a', 0, 0.4, 0); add(g, cone(0.7, 1.4, 6), leaf, 0, 1.4, 0); add(g, cone(0.5, 1.0, 6), snow ? '#ffffff' : shade(leaf, 0.15), 0, 2.0, 0); };
+  const palm = (x, z, s) => { const g = pivot(scene, x, 0, z); g.scale.setScalar(s * 1.5); g.rotation.z = (r() - 0.5) * 0.3;
+    for (let i = 0; i < 5; i++) add(g, cyl(0.1 - i * 0.008, 0.11 - i * 0.008, 0.6, 5), '#8a6a3a', 0, 0.3 + i * 0.55, 0);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; add(g, box(0.25, 0.04, 1.3), '#3a8a2a', Math.cos(a) * 0.55, 2.8, Math.sin(a) * 0.55, { ry: -a + Math.PI / 2, rx: 0.35 }); } };
+  const olive = (x, z, s) => { const g = pivot(scene, x, 0, z); g.scale.setScalar(s * 1.4); add(g, cyl(0.12, 0.18, 0.9), '#6a5a40', 0, 0.45, 0); add(g, ico(0.75, 0), '#7a8a52', 0, 1.3, 0, { s: [1.2, 0.8, 1.2] }); add(g, ico(0.5, 0), '#8a9a62', 0.3, 1.6, 0.2); };
+  const seaPlane = () => { const w = add(scene, box(140, 0.1, 60), '#2a6ac8', 0, 0.02, -42); w.material = mat('#2a6ac8', { opacity: 0.92 }); };
   switch (st.props) {
-    case 'trees': ring(14, (x, z, s) => tree(x, z, s)); ring(8, (x, z, s) => add(scene, ico(0.6 * s, 0), '#8a8a90', x, 0.3, z)); break;
-    case 'forest': ring(40, (x, z, s) => tree(x, z, s * 1.3, '#1e5a22')); break;
-    case 'snowtrees': ring(22, (x, z, s) => tree(x, z, s, '#2a5a4a', true)); break;
+    case 'pines': ring(12, (x, z, s) => { const g = pivot(scene, x, 0, z); g.scale.setScalar(s * 1.6); add(g, cyl(0.1, 0.15, 1.6), '#6a4a2a', 0, 0.8, 0); add(g, ico(0.9, 0), '#3a6a2a', 0, 1.9, 0, { s: [1.4, 0.45, 1.4] }); });
+      ring(8, (x, z, s) => add(scene, ico(0.6 * s, 0), '#a8a090', x, 0.3, z)); break;
+    case 'forest': ring(46, (x, z, s) => tree(x, z, s * 1.4, '#14301a')); break;
+    case 'palms': ring(14, (x, z, s) => palm(x, z, s)); if (st.sea) seaPlane(); break;
+    case 'olives': ring(16, (x, z, s) => olive(x, z, s)); ring(10, (x, z, s) => add(scene, ico(0.7 * s, 0), '#a89878', x, 0.3, z)); break;
+    case 'mesas': ring(12, (x, z, s) => { const hh = 3 + r() * 6; add(scene, cyl(1.2 * s, 1.8 * s, hh, 6), '#a85a30', x, hh / 2, z); add(scene, cyl(1.25 * s, 1.25 * s, 0.4, 6), '#c07040', x, hh, z); }); break;
     case 'stalag': ring(30, (x, z, s) => { add(scene, cone(0.5 * s, 2.5 * s, 5), '#4a5866', x, 1.2 * s, z); add(scene, cone(0.4 * s, 2 * s, 5), '#3a4652', x * 1.1, 8, z * 1.1, { rx: Math.PI }); }); break;
-    case 'crystals': ring(26, (x, z, s) => add(scene, cone(0.4 * s, 3 * s, 4), '#a0e0ff', x, 1.4 * s, z, { emissive: 0x204060, rz: r() * 0.5 - 0.25 })); break;
-    case 'cacti': ring(12, (x, z, s) => { add(scene, cyl(0.2, 0.2, 1.8 * s), '#3a8a3a', x, 0.9 * s, z); add(scene, cyl(0.12, 0.12, 0.7 * s), '#3a8a3a', x + 0.35 * s, 1.0 * s, z, { rz: 0.9 }); });
-      ring(10, (x, z, s) => add(scene, ico(2 * s, 1), '#d8b060', x, -0.8, z, { s: [1.6, 0.6, 1] })); break;
+    case 'amphitheater': {
+      // stepped stone seating in a half ring behind the enemies, columns at the ends
+      for (let tier = 0; tier < 6; tier++) for (let i = 0; i <= 18; i++) {
+        const a = Math.PI + i / 18 * Math.PI, rr = 15 + tier * 1.6;
+        add(scene, box(5.4, 0.8, 1.8), tier % 2 ? '#c8b48a' : '#d8c49a', Math.cos(a) * rr, 0.4 + tier * 0.8, Math.sin(a) * rr, { ry: -a + Math.PI / 2 });
+      }
+      for (const x of [-13, -9, 9, 13]) { add(scene, cyl(0.45, 0.5, 5, 8), '#e8dcc0', x, 2.5, -6); add(scene, box(1.3, 0.35, 1.3), '#d8c8a8', x, 5.1, -6); }
+      break;
+    }
+    case 'boat': {
+      for (let i = 0; i < 60; i++) { const w = add(scene, box(1.5 + r() * 2, 0.06, 0.25), '#e8f4ff', (r() - 0.5) * 50, 0.05, (r() - 0.5) * 50); w.material = mat('#e8f4ff', { opacity: 0.7 }); }
+      add(scene, box(7.5, 0.5, 3.2), '#9a6a3a', 0.6, -0.05, 3.3); add(scene, box(7.7, 0.6, 0.2), '#7a4a2a', 0.6, 0.3, 4.9); add(scene, box(7.7, 0.6, 0.2), '#7a4a2a', 0.6, 0.3, 1.7);
+      add(scene, box(1.2, 0.8, 1.6), '#e8e4d8', 4.6, 0.4, 3.3);
+      add(scene, ico(4, 1), '#8ab04a', -30, -1.5, -40, { s: [2, 0.7, 1] }); break;
+    }
+    case 'graves': ring(26, (x, z, s) => { if (r() < 0.5) { add(scene, box(0.7 * s, 1.1 * s, 0.2), '#8a8a90', x, 0.55 * s, z); } else { add(scene, box(0.15, 1.4 * s, 0.15), '#9a9aa0', x, 0.7 * s, z); add(scene, box(0.7 * s, 0.15, 0.15), '#9a9aa0', x, 1.0 * s, z); } });
+      ring(8, (x, z, s) => add(scene, cone(0.6 * s, 4 * s, 6), '#1a3020', x, 2 * s, z)); break;
+    case 'villa': {
+      add(scene, box(12, 3.5, 0.6), '#f4f2ec', 0, 1.75, -12); add(scene, box(3, 2.4, 0.2), '#2a6ab8', 0, 1.2, -11.6);
+      const pool = add(scene, box(8, 0.06, 4), '#40a0e8', -4, 0.03, -6, { emissive: 0x103050 }); pool.material = mat('#40a0e8', { emissive: 0x103050 });
+      add(scene, box(8.6, 0.12, 4.6), '#e8e4d8', -4, 0.0, -6);
+      ring(8, (x, z, s) => palm(x, z, s)); break;
+    }
     case 'pillars': ring(14, (x, z, s) => { const hgt = (1 + r() * 3) * s; add(scene, cyl(0.45, 0.5, hgt, 8), st.ground[0], x, hgt / 2, z); add(scene, box(1.2, 0.3, 1.2), st.ground[1], x, hgt, z); }); break;
-    case 'riftcrystals': ring(24, (x, z, s) => add(scene, cone(0.5 * s, 3.5 * s, 4), '#8020c0', x, 1.5 * s + r() * 2, z, { emissive: 0x400060, rz: r() - 0.5, rx: r() - 0.5 })); break;
   }
   return scene;
 }
@@ -426,11 +495,11 @@ class GeoBuilder {
   }
 }
 const FLOOR_COL = {
-  grass: '#4a9a3a', flowers: '#4a9a3a', forest: '#2e6e2a', tree: '#4a9a3a', mountain: '#4a9a3a', sand: '#dcbc6c', dune: '#d4b060', cactus: '#dcbc6c',
-  dmountain: '#dcbc6c', snow: '#e4ecf6', snowtree: '#e4ecf6', smountain: '#e4ecf6', waste: '#3a2a40', wmountain: '#3a2a40', road: '#c8a878',
+  grass: '#4a9a3a', flowers: '#4a9a3a', forest: '#2e6e2a', tree: '#4a9a3a', mountain: '#4a9a3a', sand: '#e4cc8c', dune: '#dcc080', cactus: '#e4cc8c',
+  dmountain: '#e4cc8c', snow: '#c8a65c', snowtree: '#c8a65c', smountain: '#c8a65c', waste: '#d8c088', wmountain: '#d8c088', road: '#c8a878',
   boulder: '#c8a878', riftwall: '#1a0a20', lightbridge: '#1a0a20', icewall: '#c8c8d8', tpath: '#c8b090', counter: '#c8b090', fountain: '#c8b090'
 };
-const MOUNTAIN = { mountain: ['#8a6a4a', '#ece8f0'], smountain: ['#7a8aa0', '#ffffff'], dmountain: ['#a05a3a', '#c88050'], wmountain: ['#2a1a2a', '#8a2a4a'] };
+const MOUNTAIN = { mountain: ['#8a7a5a', '#a89a78'], smountain: ['#9a7a52', '#b89a70'], dmountain: ['#b0703a', '#c88a50'], wmountain: ['#8a7a60', '#a89878'] };
 function buildMap3D(map) {
   const B = new GeoBuilder(), scene = new THREE.Scene(), th = map.theme, W = map.w, H = map.h;
   const r = mulberry32(hashStr(map.id + 'x'));
@@ -456,6 +525,10 @@ function buildMap3D(map) {
         case 'woods': if (v < 0.7) tree(px, pz, 1.3 + r() * 0.6, v < 0.35 ? '#1e5a22' : '#2a6e2a'); break;
         case 'cave': if (v < 0.3) B.cone(px, pz, 0.75, 0.22, 0.5 + r() * 0.8, '#4a5866', 5, r()); break;
         case 'ice': if (v < 0.35) B.cone(px, pz, 0.75, 0.15, 0.6 + r() * 1.0, v < 0.15 ? '#c8f0ff' : '#80b8e8', 4, r()); break;
+        case 'scrub': if (v < 0.35) { B.box(px - 0.05, 0.75, pz - 0.05, px + 0.05, 1.15, pz + 0.05, '#6a5a40', '#6a5a40'); B.cone(px, pz, 1.05, 0.38, 0.4, v < 0.18 ? '#7a8a52' : '#8a9a62', 6, r()); } break;
+        case 'canyon': if (v < 0.3) B.cone(px, pz, 0.75, 0.3, 0.8 + r() * 1.6, v < 0.12 ? '#a85a30' : '#c07040', 5, r()); break;
+        case 'theater': if (v < 0.5) { B.box(x, 0.75, y, x + 1, 1.05, y + 0.5, '#c8b48a', '#b8a47a'); B.box(x, 1.05, y, x + 1, 1.35, y + 0.25, '#d8c49a', '#c8b48a'); }
+          if (v > 0.9) { B.box(px - 0.14, 0.75, pz - 0.14, px + 0.14, 2.3, pz + 0.14, '#ece0c4', '#d8ccb0'); B.box(px - 0.22, 2.3, pz - 0.22, px + 0.22, 2.42, pz + 0.22, '#e0d4b8', '#d0c4a8'); } break;
         case 'ruins': if (v < 0.15) { const hh = 0.5 + r() * 1.2; B.box(px - 0.15, 0.75, pz - 0.15, px + 0.15, 0.75 + hh, pz + 0.15, '#c09060', '#9a6a40'); } break;
         case 'rift': if (v < 0.3) B.cone(px, pz, 0.75, 0.14, 0.6 + r() * 1.4, v < 0.12 ? '#e060ff' : '#7020a0', 4, r()); break;
         case 'shrine': if (v < 0.12) B.box(px - 0.14, 0.75, pz - 0.14, px + 0.14, 2.0, pz + 0.14, '#b0b0bc', '#8a8a96'); break;
@@ -472,7 +545,7 @@ function buildMap3D(map) {
     }
     if (map.type === 'town') {
       const tt = map.theme;
-      if (t === 'ttree') { B.floor(x, y, 0, tt.ground); tree(cx, cz, 1.6, tt.leaf, map.theme.id === 'town_snow'); continue; }
+      if (t === 'ttree') { B.floor(x, y, 0, tt.ground); if (tt.med && (x + y) % 2) { B.cone(cx, cz, 0.2, 0.28, 2.2, '#2a5a2a', 6, r()); B.box(cx - 0.05, 0, cz - 0.05, cx + 0.05, 0.3, cz + 0.05, '#5a3a1a', '#5a3a1a'); } else tree(cx, cz, 1.6, tt.leaf, false); continue; }
       if (t === 'roof' || t === 'wall' || t === 'window' || t === 'door') { B.floor(x, y, 0, tt.ground); continue; } // buildings added below
       const col = t === 'tpath' ? '#c8b090' : t === 'tflower' ? tt.ground : t === 'counter' || t === 'fountain' ? '#c8b090' : jitter(tt.ground, 0.05);
       B.floor(x, y, 0, col);
@@ -487,8 +560,10 @@ function buildMap3D(map) {
     const base = FLOOR_COL[t] || '#4a9a3a';
     B.floor(x, y, 0, jitter(base, 0.05));
     if (MOUNTAIN[t]) { const [mc, cap] = MOUNTAIN[t], hgt = 1.1 + r() * 0.9; B.cone(cx + (r() - 0.5) * 0.2, cz + (r() - 0.5) * 0.2, 0, 0.75, hgt, mc, 5, r() * 3); B.cone(cx, cz, hgt * 0.62, 0.3, hgt * 0.38, cap, 5, r()); }
-    else if (t === 'forest') { tree(x + 0.3, y + 0.35, 1, '#2e7a2e'); tree(x + 0.72, y + 0.7, 0.9, '#2a6e2a'); }
-    else if (t === 'snowtree') tree(cx, cz, 1.1, '#2a5a4a', true);
+    else if (t === 'forest') { tree(x + 0.3, y + 0.35, 1, '#2e6a2a'); tree(x + 0.72, y + 0.7, 0.9, '#2a5e26'); }
+    else if (t === 'snowtree') { B.box(cx - 0.05, 0, cz - 0.05, cx + 0.05, 0.3, cz + 0.05, '#6a5a40', '#6a5a40'); B.cone(cx, cz, 0.25, 0.32, 0.35, '#7a8a52', 6, r()); B.cone(cx, cz, 0.45, 0.24, 0.25, '#8a9a62', 6, r()); }
+    else if (t === 'waste' && r() < 0.08) { B.box(cx - 0.04, 0, cz - 0.04, cx + 0.04, 0.9, cz + 0.04, '#8a6a3a', '#8a6a3a'); B.cone(cx, cz, 0.85, 0.45, 0.12, '#3a8a2a', 6, r()); }
+    else if (t === 'grass' && r() < 0.04) { B.box(cx - 0.04, 0, cz - 0.04, cx + 0.04, 0.5, cz + 0.04, '#6a4a2a', '#6a4a2a'); B.cone(cx, cz, 0.45, 0.4, 0.2, '#3a6a2a', 7, r()); }
     else if (t === 'cactus') { B.box(cx - 0.08, 0, cz - 0.08, cx + 0.08, 0.6, cz + 0.08, '#3a8a3a', '#2a6a2a'); B.box(cx + 0.08, 0.25, cz - 0.05, cx + 0.22, 0.32, cz + 0.05, '#3a8a3a', '#2a6a2a'); }
     else if (t === 'dune') B.cone(cx, cz, 0, 0.5, 0.18, '#d0aa58', 6, r());
     else if (t === 'flowers') for (let i = 0; i < 3; i++) { const fx = x + 0.2 + r() * 0.6, fz = y + 0.2 + r() * 0.6; B.box(fx, 0, fz, fx + 0.07, 0.07, fz + 0.07, pick2(r, ['#f0e040', '#f06080', '#ffffff']), '#2a6a2a'); }
@@ -505,13 +580,27 @@ function buildMap3D(map) {
       let x1 = x; while (bld(T(x1 + 1, y))) x1++;
       let y1 = y; while (bld(T(x, y1 + 1))) y1++;
       for (let yy = y; yy <= y1; yy++) for (let xx = x; xx <= x1; xx++) seen.add(yy * W + xx);
-      const th2 = map.theme, wall = th2.wall, roof = th2.roof;
-      B.box(x + 0.05, 0, y + 0.3, x1 + 0.95, 1.5, y1 + 0.95, wall, wall);
-      B.prism(x - 0.1, y + 0.1, x1 + 1.1, y1 + 1.15, 1.5, 1.0, roof);
-      for (let xx = x; xx <= x1; xx++) {
-        const ft = T(xx, y1);
-        if (ft === 'door') B.box(xx + 0.25, 0, y1 + 0.94, xx + 0.75, 0.9, y1 + 1.0, '#6a3a1a', '#6a3a1a');
-        if (ft === 'window') { B.box(xx + 0.25, 0.65, y1 + 0.94, xx + 0.75, 1.1, y1 + 1.0, '#f0d070', '#f0d070'); }
+      const th2 = map.theme, wall = th2.wall, roof = th2.roof, door = th2.door || '#6a3a1a';
+      if (th2.med) {
+        // whitewashed house: flat roof, parapet, a dome on some, blue door and shutters
+        B.box(x + 0.05, 0, y + 0.2, x1 + 0.95, 1.8, y1 + 0.95, wall, shade(wall, -0.04));
+        B.box(x + 0.0, 1.8, y + 0.15, x1 + 1.0, 1.98, y + 0.27, wall, wall); B.box(x + 0.0, 1.8, y1 + 0.88, x1 + 1.0, 1.98, y1 + 1.0, wall, wall);
+        B.box(x + 0.0, 1.8, y + 0.15, x + 0.12, 1.98, y1 + 1.0, wall, wall); B.box(x1 + 0.88, 1.8, y + 0.15, x1 + 1.0, 1.98, y1 + 1.0, wall, wall);
+        if ((x + y) % 3 !== 1) { const dx = (x + x1 + 1) / 2, dz = (y + y1 + 1) / 2; B.box(dx - 0.6, 1.8, dz - 0.6, dx + 0.6, 2.1, dz + 0.6, wall, wall); B.cone(dx, dz, 2.1, 0.62, 0.7, '#f8f8f4', 8, 0); }
+        for (let xx = x; xx <= x1; xx++) {
+          const ft = T(xx, y1);
+          if (ft === 'door') { B.box(xx + 0.22, 0, y1 + 0.94, xx + 0.78, 1.05, y1 + 1.0, door, door); B.box(xx + 0.18, 1.05, y1 + 0.94, xx + 0.82, 1.15, y1 + 1.0, shade(door, -0.2), door); }
+          if (ft === 'window') { B.box(xx + 0.2, 0.8, y1 + 0.94, xx + 0.8, 1.35, y1 + 1.0, door, door); B.box(xx + 0.45, 0.8, y1 + 0.95, xx + 0.55, 1.35, y1 + 1.01, shade(door, -0.3), door); }
+          if (ft === 'roof' && (xx * 7 + y1) % 4 === 0) B.box(xx + 0.3, 1.2, y1 + 0.94, xx + 0.7, 1.5, y1 + 1.0, door, door);
+        }
+      } else {
+        B.box(x + 0.05, 0, y + 0.3, x1 + 0.95, 1.5, y1 + 0.95, wall, wall);
+        B.prism(x - 0.1, y + 0.1, x1 + 1.1, y1 + 1.15, 1.5, 1.0, roof);
+        for (let xx = x; xx <= x1; xx++) {
+          const ft = T(xx, y1);
+          if (ft === 'door') B.box(xx + 0.25, 0, y1 + 0.94, xx + 0.75, 0.9, y1 + 1.0, '#6a3a1a', '#6a3a1a');
+          if (ft === 'window') { B.box(xx + 0.25, 0.65, y1 + 0.94, xx + 0.75, 1.1, y1 + 1.0, '#f0d070', '#f0d070'); }
+        }
       }
     }
   }

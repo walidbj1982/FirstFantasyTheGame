@@ -70,7 +70,7 @@ for (const [id, e] of Object.entries(ENEMIES)) {
   if (e.steal) ok(isItem(e.steal), `${id} steal ${e.steal}`);
   if (e.drop) ok(isItem(e.drop[0]), `${id} drop ${e.drop[0]}`);
   for (const m of [...(e.minions || []), ...(e.summons || [])]) ok(ENEMIES[m], `${id} minion ${m}`);
-  ok(e.kind === 'human' || R('MON')[e.kind], `${id} sprite kind ${e.kind}`);
+  ok(['human', 'thug', 'jetski'].includes(e.kind) || R('MON')[e.kind], `${id} model kind ${e.kind}`);
 }
 for (const z of Object.values(ZONES)) for (const id of z.pool) ok(ENEMIES[id], 'zone enemy ' + id);
 for (const j of Object.values(JOBS)) for (const [, s] of j.skills) ok(SKILLS[s], 'job skill ' + s);

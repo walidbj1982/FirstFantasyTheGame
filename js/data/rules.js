@@ -2,35 +2,29 @@
 'use strict';
 
 const JOBS = {
-  knight: {
-    name: 'Knight', weapon: 'sword', armor: ['heavy', 'light'],
-    base: { hp: 75, mp: 6, str: 14, mag: 6, def: 10, mdef: 6, spd: 10 },
-    grow: { hp: 26, mp: 2.2, str: 1.9, mag: 0.8, def: 1.2, mdef: 0.9, spd: 0.35 },
-    skills: [[2, 'powerslash'], [6, 'shieldbash'], [10, 'crossslash'], [15, 'aegis'], [20, 'bladebeam'], [25, 'valor'], [31, 'skysplit'], [38, 'dawnstrike']],
-    menu: 'Arts'
+  brawler: {
+    name: 'Brawler', weapon: 'glove', armor: ['light', 'heavy'],
+    base: { hp: 80, mp: 8, str: 15, mag: 7, def: 10, mdef: 7, spd: 12 },
+    grow: { hp: 27, mp: 2.6, str: 2.0, mag: 0.8, def: 1.15, mdef: 0.95, spd: 0.45 },
+    skills: [[1, 'groundwave'], [5, 'knucklerush'], [9, 'risingtackle'], [14, 'rally'], [19, 'geyser'], [25, 'secondwind'],
+      [31, 'crackshoot'], [38, 'triplegeyser']],
+    menu: 'Moves', burst: 'single'
   },
-  mage: {
-    name: 'Mage', weapon: 'rod', armor: ['robe'],
-    base: { hp: 52, mp: 14, str: 7, mag: 15, def: 6, mdef: 12, spd: 11 },
-    grow: { hp: 15, mp: 5.5, str: 0.7, mag: 2.0, def: 0.7, mdef: 1.4, spd: 0.4 },
-    skills: [[1, 'fire'], [1, 'blizzard'], [3, 'thunder'], [5, 'sleep'], [11, 'fira'], [12, 'blizzara'], [13, 'thundara'],
-      [17, 'drain'], [20, 'slow'], [24, 'firaga'], [25, 'blizzaga'], [26, 'thundaga'], [32, 'flare'], [40, 'ultima']],
-    menu: 'Magic'
+  monk: {
+    name: 'Martial Artist', weapon: 'band', armor: ['robe', 'light'],
+    base: { hp: 66, mp: 14, str: 12, mag: 13, def: 9, mdef: 11, spd: 12 },
+    grow: { hp: 22, mp: 4.6, str: 1.5, mag: 1.75, def: 1.0, mdef: 1.3, spd: 0.45 },
+    skills: [[1, 'kiblast'], [1, 'chiheal'], [4, 'risingdragon'], [7, 'cleanse'], [10, 'whirlwind'], [12, 'ironbody'], [15, 'revive'],
+      [18, 'kiburst'], [22, 'healingwave'], [26, 'innerpeace'], [30, 'dragonfist'], [36, 'rebirth']],
+    menu: 'Ki', burst: 'all'
   },
-  healer: {
-    name: 'Healer', weapon: 'staff', armor: ['robe'],
-    base: { hp: 56, mp: 12, str: 8, mag: 13, def: 7, mdef: 13, spd: 11 },
-    grow: { hp: 17, mp: 5, str: 0.9, mag: 1.8, def: 0.85, mdef: 1.5, spd: 0.4 },
-    skills: [[1, 'cure'], [4, 'protect'], [7, 'esuna'], [10, 'cura'], [12, 'shell'], [15, 'raise'], [18, 'haste'],
-      [22, 'curaga'], [25, 'regen'], [30, 'holy'], [36, 'arise']],
-    menu: 'Prayer'
-  },
-  rogue: {
-    name: 'Rogue', weapon: 'dagger', armor: ['light'],
-    base: { hp: 62, mp: 8, str: 12, mag: 8, def: 8, mdef: 8, spd: 14 },
-    grow: { hp: 20, mp: 2.8, str: 1.6, mag: 1.0, def: 0.95, mdef: 1.0, spd: 0.55 },
-    skills: [[1, 'steal'], [4, 'doublecut'], [7, 'venom'], [10, 'mug'], [13, 'dazzle'], [18, 'shadowstep'], [22, 'knives'], [30, 'assassinate']],
-    menu: 'Tricks'
+  gunner: {
+    name: 'Gunner', weapon: 'gun', armor: ['heavy', 'light'],
+    base: { hp: 95, mp: 8, str: 14, mag: 8, def: 12, mdef: 8, spd: 9 },
+    grow: { hp: 31, mp: 2.4, str: 1.85, mag: 0.9, def: 1.3, mdef: 1.0, spd: 0.32 },
+    skills: [[1, 'bigshot'], [4, 'rapidfire'], [8, 'grenade'], [12, 'flashbang'], [16, 'coverfire'], [20, 'gatling'], [26, 'armorpierce'],
+      [32, 'mortar'], [38, 'orbitalstrike']],
+    menu: 'Guns', burst: 'multi'
   }
 };
 
@@ -38,51 +32,46 @@ const JOBS = {
 // target: enemy | enemies | ally | allies | self | ko   (relative to the user)
 const SKILLS = {
   attack: { name: 'Attack', mp: 0, kind: 'phys', target: 'enemy', pow: 1, fx: 'slash' },
-  // knight
-  powerslash: { name: 'Power Slash', mp: 4, kind: 'phys', target: 'enemy', pow: 1.7, fx: 'bigslash', desc: 'A heavy two-handed blow.' },
-  shieldbash: { name: 'Shield Bash', mp: 6, kind: 'phys', target: 'enemy', pow: 1.1, st: ['sleep', 0.45], fx: 'hit', desc: 'Stuns the foe (sleep).' },
-  crossslash: { name: 'Cross Slash', mp: 10, kind: 'phys', target: 'enemy', pow: 1.0, hits: 2, fx: 'bigslash', desc: 'Two fast cuts.' },
-  aegis: { name: 'Aegis', mp: 14, kind: 'buff', target: 'allies', st: ['protect', 1], fx: 'buff', desc: 'Protect on the whole party.' },
-  bladebeam: { name: 'Blade Beam', mp: 18, kind: 'phys', target: 'enemies', pow: 1.0, fx: 'beam', desc: 'A wave of light hits all foes.' },
-  valor: { name: 'Valor', mp: 12, kind: 'buff', target: 'self', st: ['brave', 1], fx: 'buff', desc: 'Raise own attack by half.' },
-  skysplit: { name: 'Sky Splitter', mp: 30, kind: 'phys', target: 'enemy', pow: 3.2, fx: 'bigslash', desc: 'Cleaves the very sky.' },
-  dawnstrike: { name: 'Dawnstrike', mp: 46, kind: 'phys', target: 'enemies', pow: 2.0, el: 'holy', fx: 'holy', desc: 'Holy blade on all foes.' },
-  // mage
-  fire: { name: 'Fire', mp: 4, kind: 'magic', target: 'enemy', pow: 10, el: 'fire', fx: 'fire' },
-  blizzard: { name: 'Blizzard', mp: 4, kind: 'magic', target: 'enemy', pow: 10, el: 'ice', fx: 'ice' },
-  thunder: { name: 'Thunder', mp: 5, kind: 'magic', target: 'enemy', pow: 11, el: 'bolt', fx: 'bolt' },
-  sleep: { name: 'Sleep', mp: 6, kind: 'debuff', target: 'enemy', st: ['sleep', 0.7], fx: 'debuff', desc: 'Puts a foe to sleep.' },
+  // brawler (Terry)
+  groundwave: { name: 'Ground Wave', mp: 4, kind: 'phys', target: 'enemy', pow: 1.5, el: 'earth', fx: 'beam', desc: 'An energy wave that races along the ground.' },
+  knucklerush: { name: 'Knuckle Rush', mp: 6, kind: 'phys', target: 'enemy', pow: 0.95, hits: 2, fx: 'hit', desc: 'Two flaming punches.' },
+  risingtackle: { name: 'Rising Tackle', mp: 8, kind: 'phys', target: 'enemy', pow: 1.6, st: ['sleep', 0.35], fx: 'bigslash', desc: 'A spinning upward tackle that stuns.' },
+  rally: { name: 'Rally', mp: 14, kind: 'buff', target: 'allies', st: ['brave', 1], fx: 'buff', desc: 'Fires up the whole team (attack up).' },
+  geyser: { name: 'Geyser', mp: 18, kind: 'phys', target: 'enemies', pow: 1.05, el: 'earth', fx: 'quake', desc: 'Punches the ground: an eruption hits all foes.' },
+  secondwind: { name: 'Second Wind', mp: 10, kind: 'heal', target: 'self', pow: 30, fx: 'heal', desc: 'Catches a breath and recovers HP.' },
+  crackshoot: { name: 'Crack Shoot', mp: 26, kind: 'phys', target: 'enemy', pow: 3.1, fx: 'bigslash', desc: 'A devastating somersault kick.' },
+  triplegeyser: { name: 'Triple Geyser', mp: 44, kind: 'phys', target: 'enemies', pow: 2.0, el: 'earth', fx: 'quake', desc: 'Three eruptions across the field.' },
+  // martial artist (Ryu)
+  kiblast: { name: 'Ki Blast', mp: 4, kind: 'magic', target: 'enemy', pow: 11, fx: 'holy', desc: 'Throws a ball of energy from both palms.' },
+  chiheal: { name: 'Chi Heal', mp: 4, kind: 'heal', target: 'ally', pow: 12, fx: 'heal', field: true, desc: 'Restores an ally\'s HP.' },
+  risingdragon: { name: 'Rising Dragon', mp: 6, kind: 'phys', target: 'enemy', pow: 1.7, fx: 'bigslash', desc: 'A rising uppercut.' },
+  cleanse: { name: 'Cleanse', mp: 6, kind: 'cure', target: 'ally', fx: 'heal', field: true, desc: 'Cures bad status.' },
+  whirlwind: { name: 'Whirlwind Kick', mp: 10, kind: 'phys', target: 'enemies', pow: 0.85, fx: 'slash', desc: 'A spinning kick that hits all foes.' },
+  ironbody: { name: 'Iron Body', mp: 8, kind: 'buff', target: 'ally', st: ['protect', 1], fx: 'buff', desc: 'Halves physical damage.' },
+  revive: { name: 'Revive', mp: 20, kind: 'revive', target: 'ko', pow: 0.3, fx: 'heal', field: true, desc: 'Brings a fallen friend back.' },
+  kiburst: { name: 'Ki Burst', mp: 14, kind: 'magic', target: 'enemy', pow: 27, fx: 'holy', desc: 'A huge blast of energy.' },
+  healingwave: { name: 'Healing Wave', mp: 22, kind: 'heal', target: 'allies', pow: 28, fx: 'heal', field: true, desc: 'Restores HP to the team.' },
+  innerpeace: { name: 'Inner Peace', mp: 14, kind: 'buff', target: 'ally', st: ['regen', 1], fx: 'heal', desc: 'Slowly restores HP.' },
+  dragonfist: { name: 'Dragon Fist', mp: 34, kind: 'magic', target: 'enemy', pow: 66, el: 'fire', fx: 'fire', desc: 'A blazing punch of pure ki.' },
+  rebirth: { name: 'Rebirth', mp: 45, kind: 'revive', target: 'ko', pow: 1, fx: 'holy', field: true, desc: 'Revives with full HP.' },
+  // gunner (Barret)
+  bigshot: { name: 'Big Shot', mp: 4, kind: 'phys', target: 'enemy', pow: 1.6, fx: 'bolt', desc: 'A charged blast from the gun-arm.' },
+  rapidfire: { name: 'Rapid Fire', mp: 6, kind: 'phys', target: 'enemy', pow: 0.65, hits: 3, fx: 'hit', desc: 'Three quick shots.' },
+  grenade: { name: 'Grenade', mp: 10, kind: 'magic', target: 'enemies', pow: 14, el: 'fire', fx: 'fire', desc: 'Fire damage to all foes.' },
+  flashbang: { name: 'Flashbang', mp: 8, kind: 'debuff', target: 'enemies', st: ['blind', 0.6], fx: 'debuff', desc: 'Blinds all foes.' },
+  coverfire: { name: 'Cover Fire', mp: 14, kind: 'buff', target: 'allies', st: ['protect', 1], fx: 'buff', desc: 'Protect on the whole team.' },
+  gatling: { name: 'Gatling', mp: 18, kind: 'phys', target: 'enemies', pow: 0.6, hits: 2, fx: 'hit', desc: 'Sprays bullets across all foes.' },
+  armorpierce: { name: 'Armor Piercer', mp: 22, kind: 'phys', target: 'enemy', pow: 2.7, fx: 'bolt', desc: 'A shell that punches through anything.' },
+  mortar: { name: 'Mortar', mp: 30, kind: 'magic', target: 'enemies', pow: 34, el: 'fire', fx: 'fire', desc: 'Shells rain on all foes.' },
+  orbitalstrike: { name: 'Orbital Strike', mp: 52, kind: 'magic', target: 'enemies', pow: 60, fx: 'flare', desc: 'A beam from the sky.' },
+  steal: { name: 'Steal', mp: 0, kind: 'steal', target: 'enemy', fx: 'steal' },
+  // mage spells still used by enemies
   fira: { name: 'Fira', mp: 12, kind: 'magic', target: 'enemy', pow: 24, el: 'fire', fx: 'fire' },
   blizzara: { name: 'Blizzara', mp: 12, kind: 'magic', target: 'enemy', pow: 24, el: 'ice', fx: 'ice' },
-  thundara: { name: 'Thundara', mp: 13, kind: 'magic', target: 'enemy', pow: 25, el: 'bolt', fx: 'bolt' },
-  drain: { name: 'Drain', mp: 14, kind: 'drain', target: 'enemy', pow: 20, el: 'dark', fx: 'dark', desc: 'Steal HP from a foe.' },
-  slow: { name: 'Slow', mp: 10, kind: 'debuff', target: 'enemy', st: ['slow', 0.8], fx: 'debuff' },
   firaga: { name: 'Firaga', mp: 28, kind: 'magic', target: 'enemies', pow: 32, el: 'fire', fx: 'fire' },
   blizzaga: { name: 'Blizzaga', mp: 28, kind: 'magic', target: 'enemies', pow: 32, el: 'ice', fx: 'ice' },
-  thundaga: { name: 'Thundaga', mp: 30, kind: 'magic', target: 'enemies', pow: 33, el: 'bolt', fx: 'bolt' },
-  flare: { name: 'Flare', mp: 42, kind: 'magic', target: 'enemy', pow: 72, fx: 'flare' },
-  ultima: { name: 'Ultima', mp: 70, kind: 'magic', target: 'enemies', pow: 62, fx: 'flare' },
-  // healer
-  cure: { name: 'Cure', mp: 4, kind: 'heal', target: 'ally', pow: 12, fx: 'heal', field: true },
-  protect: { name: 'Protect', mp: 6, kind: 'buff', target: 'ally', st: ['protect', 1], fx: 'buff', desc: 'Halves physical damage.' },
-  esuna: { name: 'Esuna', mp: 6, kind: 'cure', target: 'ally', fx: 'heal', field: true, desc: 'Cures bad status.' },
-  cura: { name: 'Cura', mp: 10, kind: 'heal', target: 'ally', pow: 28, fx: 'heal', field: true },
-  shell: { name: 'Shell', mp: 8, kind: 'buff', target: 'ally', st: ['shell', 1], fx: 'buff', desc: 'Halves magic damage.' },
-  raise: { name: 'Raise', mp: 20, kind: 'revive', target: 'ko', pow: 0.3, fx: 'heal', field: true },
-  haste: { name: 'Haste', mp: 12, kind: 'buff', target: 'ally', st: ['haste', 1], fx: 'buff' },
-  curaga: { name: 'Curaga', mp: 24, kind: 'heal', target: 'allies', pow: 30, fx: 'heal', field: true },
-  regen: { name: 'Regen', mp: 14, kind: 'buff', target: 'ally', st: ['regen', 1], fx: 'heal' },
-  holy: { name: 'Holy', mp: 34, kind: 'magic', target: 'enemy', pow: 64, el: 'holy', fx: 'holy' },
-  arise: { name: 'Arise', mp: 45, kind: 'revive', target: 'ko', pow: 1, fx: 'holy', field: true },
-  // rogue
-  steal: { name: 'Steal', mp: 0, kind: 'steal', target: 'enemy', fx: 'steal' },
-  doublecut: { name: 'Double Cut', mp: 5, kind: 'phys', target: 'enemy', pow: 0.85, hits: 2, fx: 'slash' },
-  venom: { name: 'Venom Edge', mp: 6, kind: 'phys', target: 'enemy', pow: 1.1, st: ['poison', 0.75], fx: 'slash' },
-  mug: { name: 'Mug', mp: 6, kind: 'phys', target: 'enemy', pow: 1.0, steal: true, fx: 'slash', desc: 'Attack and steal.' },
-  dazzle: { name: 'Dazzle', mp: 10, kind: 'debuff', target: 'enemies', st: ['blind', 0.6], fx: 'debuff', desc: 'Blinds all foes.' },
-  shadowstep: { name: 'Shadowstep', mp: 14, kind: 'buff', target: 'self', st: ['haste', 1], fx: 'buff' },
-  knives: { name: 'Fan of Knives', mp: 18, kind: 'phys', target: 'enemies', pow: 0.7, hits: 2, fx: 'slash' },
-  assassinate: { name: 'Assassinate', mp: 24, kind: 'phys', target: 'enemy', pow: 2.4, st: ['death', 0.25], fx: 'bigslash' },
+  drain: { name: 'Drain', mp: 14, kind: 'drain', target: 'enemy', pow: 20, el: 'dark', fx: 'dark' },
+  hasteself: { name: 'Quicken', kind: 'buff', target: 'self', st: ['haste', 1], fx: 'buff' },
   // enemy-only
   bite: { name: 'Bite', kind: 'phys', target: 'enemy', pow: 1.3, fx: 'hit' },
   claw: { name: 'Claw', kind: 'phys', target: 'enemy', pow: 1.2, fx: 'slash' },
@@ -107,7 +96,6 @@ const SKILLS = {
   ward: { name: 'Dark Ward', kind: 'buff', target: 'self', st: ['shell', 1], fx: 'buff' },
   harden: { name: 'Harden', kind: 'buff', target: 'self', st: ['protect', 1], fx: 'buff' },
   enrage: { name: 'Fury', kind: 'buff', target: 'self', st: ['brave', 1], fx: 'buff' },
-  hasteself: { name: 'Quicken', kind: 'buff', target: 'self', st: ['haste', 1], fx: 'buff' },
   doom: { name: 'Doom Claw', kind: 'phys', target: 'enemy', pow: 1.6, st: ['poison', 0.9], fx: 'bigslash' },
   silencewave: { name: 'Hush', kind: 'debuff', target: 'enemies', st: ['silence', 0.45], fx: 'debuff' },
   slowga: { name: 'Time Rot', kind: 'debuff', target: 'enemies', st: ['slow', 0.5], fx: 'debuff' },
@@ -153,34 +141,27 @@ const ITEMS = {
 
 // slot: weapon | armor | acc     type: sword rod staff dagger | heavy robe light
 const EQUIP = {
-  // swords
-  bronzesword: { name: 'Bronze Sword', slot: 'weapon', type: 'sword', atk: 8, price: 120 },
-  ironblade: { name: 'Iron Blade', slot: 'weapon', type: 'sword', atk: 18, price: 600 },
-  mythrilsword: { name: 'Mythril Sword', slot: 'weapon', type: 'sword', atk: 32, price: 2000 },
-  flamberge: { name: 'Flamberge', slot: 'weapon', type: 'sword', atk: 48, el: 'fire', price: 5200 },
-  crystalsaber: { name: 'Crystal Saber', slot: 'weapon', type: 'sword', atk: 66, price: 11000 },
-  dawnedge: { name: 'Dawn Edge', slot: 'weapon', type: 'sword', atk: 90, el: 'holy', str: 10, price: 0 },
-  // rods
-  oakrod: { name: 'Oak Rod', slot: 'weapon', type: 'rod', atk: 3, mag: 3, price: 100 },
-  silverrod: { name: 'Silver Rod', slot: 'weapon', type: 'rod', atk: 6, mag: 8, price: 550 },
-  frostrod: { name: 'Frost Rod', slot: 'weapon', type: 'rod', atk: 10, mag: 14, price: 1900 },
-  emberrod: { name: 'Ember Rod', slot: 'weapon', type: 'rod', atk: 14, mag: 22, price: 4800 },
-  starrod: { name: 'Star Rod', slot: 'weapon', type: 'rod', atk: 18, mag: 32, price: 10500 },
-  riftscepter: { name: 'Rift Scepter', slot: 'weapon', type: 'rod', atk: 24, mag: 46, price: 0 },
-  // staves
-  ashstaff: { name: 'Ash Staff', slot: 'weapon', type: 'staff', atk: 4, mag: 2, price: 100 },
-  healstaff: { name: 'Healing Staff', slot: 'weapon', type: 'staff', atk: 8, mag: 6, price: 520 },
-  prismstaff: { name: 'Prism Staff', slot: 'weapon', type: 'staff', atk: 12, mag: 12, price: 1850 },
-  sagestaff: { name: 'Sage Staff', slot: 'weapon', type: 'staff', atk: 16, mag: 20, price: 4700 },
-  seraphstaff: { name: 'Seraph Staff', slot: 'weapon', type: 'staff', atk: 20, mag: 30, price: 10200 },
-  luminastaff: { name: 'Lumina Staff', slot: 'weapon', type: 'staff', atk: 26, mag: 42, price: 0 },
-  // daggers
-  knife: { name: 'Knife', slot: 'weapon', type: 'dagger', atk: 7, price: 90 },
-  kris: { name: 'Kris', slot: 'weapon', type: 'dagger', atk: 16, price: 560 },
-  mythrildagger: { name: 'Mythril Dagger', slot: 'weapon', type: 'dagger', atk: 28, spd: 2, price: 1900 },
-  fang: { name: "Viper's Fang", slot: 'weapon', type: 'dagger', atk: 42, spd: 3, price: 5000 },
-  shadowblade: { name: 'Shadow Blade', slot: 'weapon', type: 'dagger', atk: 58, spd: 4, price: 10800 },
-  moonfang: { name: 'Moonfang', slot: 'weapon', type: 'dagger', atk: 80, spd: 6, price: 0 },
+  // gloves (Terry)
+  leathergloves: { name: 'Leather Gloves', slot: 'weapon', type: 'glove', atk: 8, price: 120 },
+  ironknuckles: { name: 'Iron Knuckles', slot: 'weapon', type: 'glove', atk: 18, price: 600 },
+  steelknuckles: { name: 'Steel Knuckles', slot: 'weapon', type: 'glove', atk: 32, price: 2000 },
+  flameknuckles: { name: 'Flame Knuckles', slot: 'weapon', type: 'glove', atk: 48, el: 'fire', price: 5200 },
+  crystalknuckles: { name: 'Crystal Knuckles', slot: 'weapon', type: 'glove', atk: 66, price: 11000 },
+  wolfgloves: { name: 'Wolf Fang Gloves', slot: 'weapon', type: 'glove', atk: 90, str: 10, price: 0 },
+  // hand wraps and headbands (Ryu)
+  clothwraps: { name: 'Cloth Wraps', slot: 'weapon', type: 'band', atk: 7, mag: 3, price: 110 },
+  trainingband: { name: 'Training Band', slot: 'weapon', type: 'band', atk: 15, mag: 7, price: 560 },
+  dragonband: { name: 'Dragon Band', slot: 'weapon', type: 'band', atk: 26, mag: 13, price: 1900 },
+  spiritwraps: { name: 'Spirit Wraps', slot: 'weapon', type: 'band', atk: 38, mag: 21, price: 4900 },
+  sageband: { name: 'Sage Band', slot: 'weapon', type: 'band', atk: 52, mag: 31, price: 10500 },
+  heavenband: { name: 'Heaven Band', slot: 'weapon', type: 'band', atk: 72, mag: 44, price: 0 },
+  // gun-arms (Barret)
+  gunarm: { name: 'Gun-Arm', slot: 'weapon', type: 'gun', atk: 9, price: 130 },
+  assaultgun: { name: 'Assault Gun', slot: 'weapon', type: 'gun', atk: 19, price: 620 },
+  heavyvulcan: { name: 'Heavy Vulcan', slot: 'weapon', type: 'gun', atk: 34, price: 2050 },
+  flamecannon: { name: 'Flame Cannon', slot: 'weapon', type: 'gun', atk: 50, el: 'fire', price: 5300 },
+  thundercannon: { name: 'Thunder Cannon', slot: 'weapon', type: 'gun', atk: 68, el: 'bolt', price: 11200 },
+  ultimacannon: { name: 'Ultima Cannon', slot: 'weapon', type: 'gun', atk: 92, str: 8, price: 0 },
   // heavy armour
   chainmail: { name: 'Chain Mail', slot: 'armor', type: 'heavy', def: 6, mdef: 1, price: 150 },
   ironarmor: { name: 'Iron Armor', slot: 'armor', type: 'heavy', def: 12, mdef: 3, price: 650 },
