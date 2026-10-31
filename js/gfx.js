@@ -103,9 +103,9 @@ const TEXTURES = {
     const V = voronoi(N, 46, 77);
     return paintPixels(N, (x, y) => {
       const [d1, d2, id] = V(x, y), e = d2 - d1, n = fbm(x / N * 8, y / N * 8, 8, 3, 3);
-      if (e < 2.2) return 0.38 + n * 0.15;
-      const bevel = smooth(2.2, 7, e);
-      return (0.66 + id * 0.28 + n * 0.14) * (0.82 + bevel * 0.18);
+      if (e < 1.6) return 0.6 + n * 0.12;
+      const bevel = smooth(1.6, 6, e);
+      return (0.8 + id * 0.16 + n * 0.1) * (0.9 + bevel * 0.1);
     });
   },
   plaster(N = 256) {
@@ -190,6 +190,23 @@ const TEXTURES = {
   hair(N = 128) { // strands running from the crown down (v)
     return paintPixels(N, (x, y) => 0.7 + fbm(x / N * 32, y / N * 1.5, 32, 3, 171) * 0.3 + Math.sin(x / N * Math.PI * 64) * 0.03);
   },
+  skin(N = 128) { return paintPixels(N, (x, y) => 0.93 + fbm(x / N * 8, y / N * 8, 8, 3, 181) * 0.07 + (hash2(x, y, 4) - 0.5) * 0.03); },
+  quilt(N = 128) { // puffer-vest bands: soft horizontal pillows with stitched seams
+    return paintPixels(N, (x, y) => {
+      const v = (y / N * 8) % 1, puff = Math.sin(v * Math.PI), wr = fbm(x / N * 6, y / N * 6, 6, 3, 191);
+      return (0.55 + puff * 0.42 + (wr - 0.5) * 0.12) * (v < 0.04 || v > 0.96 ? 0.7 : 1) + Math.pow(puff, 8) * 0.08;
+    });
+  },
+  leather(N = 128) { return paintPixels(N, (x, y) => 0.78 + fbm(x / N * 10, y / N * 10, 10, 4, 201) * 0.22 - Math.pow(Math.abs(fbm(x / N * 4, y / N * 4, 4, 3, 203) - 0.5) * 2, 6) * 0.2); },
+  leafcard(N = 128) { // a clump of leaves with alpha, for fluffy tree silhouettes
+    const c = mkCanvas(N, N), g = c.getContext('2d'), r = mulberry32(211);
+    for (let i = 0; i < 140; i++) {
+      const a = r() * Math.PI * 2, d = Math.pow(r(), 0.6) * N * 0.42, x = N / 2 + Math.cos(a) * d, y = N / 2 + Math.sin(a) * d, l = Math.floor(120 + r() * 135);
+      g.fillStyle = `rgb(${l},${l},${Math.floor(l * 0.9)})`; g.beginPath(); g.ellipse(x, y, 3 + r() * 4, 1.5 + r() * 2, r() * 3, 0, 7); g.fill();
+    }
+    return c;
+  },
+  spark(N = 64) { const c = mkCanvas(N, N), g = c.getContext('2d'), gr = g.createRadialGradient(N / 2, N / 2, 0, N / 2, N / 2, N / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.3, 'rgba(255,255,255,0.6)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, N, N); return c; },
   metal(N = 128) {
     return paintPixels(N, (x, y) => 0.82 + fbm(x / N * 32, y / N * 2, 32, 3, 151) * 0.18);
   },
@@ -338,6 +355,7 @@ const PROPS = {
       const a = i / 5 * Math.PI * 2 + r(), d = i ? 0.9 + r() * 0.5 : 0;
       mesh(GFX.blob(i % 4, 0.25), M.leaf(i % 2 ? '#3f6a2c' : '#4a7832'), bend + Math.cos(a) * d, h + 0.2 + r() * 0.3, Math.sin(a) * d, [1.3 + r() * 0.4, 0.55, 1.3 + r() * 0.4], g);
     }
+    GFX.leafCards(g, bend, h + 0.35, 0, 2.0, 0.55, 2.0, '#4a7832', 22, r);
     return g;
   },
   cypress(r) {
@@ -351,6 +369,7 @@ const PROPS = {
     mesh(GFX.trunk(0.22, 0.14, 1.4, b), M.bark(), 0, 0, 0, 1, g);
     mesh(GFX.trunk(0.12, 0.07, 1.0, -b), M.bark(), b, 1.2, 0, 1, g).rotation.z = 0.5;
     for (let i = 0; i < 4; i++) { const a = i * 1.7 + r(); mesh(GFX.blob(i, 0.28), M.leaf(i % 2 ? '#7c8a5a' : '#6a7a4c'), b + Math.cos(a) * 0.6, 1.9 + r() * 0.5, Math.sin(a) * 0.6, 0.85 + r() * 0.3, g); }
+    GFX.leafCards(g, b, 2.1, 0, 1.4, 0.9, 1.4, '#7c8a5a', 18, r);
     return g;
   },
   palm(r) {
@@ -366,6 +385,7 @@ const PROPS = {
     const g = new THREE.Group(), h = 6 + r() * 4;
     mesh(GFX.trunk(0.28, 0.12, h, (r() - 0.5) * 0.5), M.darkbark(), 0, 0, 0, 1, g);
     for (let i = 0; i < 4; i++) mesh(GFX.blob(i, 0.3), M.leaf(i % 2 ? '#1a3420' : '#22402a'), (r() - 0.5) * 0.8, h * (0.55 + i * 0.13), (r() - 0.5) * 0.8, [1.6 - i * 0.25, 1.2, 1.6 - i * 0.25], g);
+    GFX.leafCards(g, 0, h * 0.72, 0, 1.6, h * 0.25, 1.6, '#22402a', 16, r);
     return g;
   },
   deadTree(r) {
@@ -374,7 +394,7 @@ const PROPS = {
     for (let i = 0; i < 4; i++) { const b = mesh(GFX.trunk(0.07, 0.02, 1.4, 0.2), M.darkbark(), 0.2, h * (0.5 + i * 0.12), 0, 1, g); b.rotation.set(r() - 0.5, i * 1.7, 0.8 + r() * 0.5); }
     return g;
   },
-  bush(r, col = '#4a6a34') { const g = new THREE.Group(); for (let i = 0; i < 3; i++) mesh(GFX.blob(i, 0.3), M.leaf(col), (r() - 0.5) * 0.8, 0.35, (r() - 0.5) * 0.8, 0.45 + r() * 0.3, g); return g; },
+  bush(r, col = '#4a6a34') { const g = new THREE.Group(); for (let i = 0; i < 3; i++) mesh(GFX.blob(i, 0.3), M.leaf(col), (r() - 0.5) * 0.8, 0.35, (r() - 0.5) * 0.8, 0.45 + r() * 0.3, g); GFX.leafCards(g, 0, 0.4, 0, 0.75, 0.4, 0.75, col, 8, r); return g; },
   rock(r, col = '#8a8478', s = 1) {
     const g = new THREE.Group();
     mesh(GFX.blob(Math.floor(r() * 4) + 10, 0.35, 1), M.rock(col), 0, 0.15 * s, 0, [s * (0.8 + r() * 0.6), s * (0.5 + r() * 0.4), s * (0.8 + r() * 0.6)], g).rotation.y = r() * 6;
@@ -551,3 +571,47 @@ GFX.dirFrom = function (u, el) {
   const p = u * Math.PI * 2;
   return new THREE.Vector3(-Math.cos(p) * Math.cos(el), Math.sin(el), Math.sin(p) * Math.cos(el));
 };
+
+// ------------------------------------------------------------------ detail helpers
+// fluffy leaf cards scattered over an ellipsoid canopy
+GFX.leafCards = function (parent, cx, cy, cz, sx, sy, sz, col, n, r) {
+  const m = GFX.mat(col, { tex: 'leafcard', alpha: true, side: THREE.DoubleSide, rough: 0.8 }), geo = this.geos.card || (this.geos.card = new THREE.PlaneGeometry(1, 1));
+  for (let i = 0; i < n; i++) {
+    const u = r() * Math.PI * 2, v = Math.acos(r() * 2 - 1), x = Math.sin(v) * Math.cos(u), y = Math.cos(v), z = Math.sin(v) * Math.sin(u);
+    const c = mesh(geo, m, cx + x * sx, cy + y * sy * 0.9, cz + z * sz, (sx + sz) * (0.35 + r() * 0.25), parent);
+    c.rotation.set(r() * 3, r() * 3, r() * 3); c.receiveShadow = false;
+  }
+};
+// floating particles (fireflies, dust motes, embers); returns Points with a tick(t)
+GFX.particles = function (n, col, box, size, drift = 0.01, blink = false) {
+  const g = new THREE.BufferGeometry(), p = [], base = [];
+  for (let i = 0; i < n; i++) { const x = box[0] + Math.random() * (box[1] - box[0]), y = box[2] + Math.random() * (box[3] - box[2]), z = box[4] + Math.random() * (box[5] - box[4]); p.push(x, y, z); base.push(x, y, z, Math.random() * 6.28); }
+  g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  const m = new THREE.PointsMaterial({ color: lin(col), map: GFX.texture('spark'), size, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9 });
+  const pts = new THREE.Points(g, m);
+  pts.userData.tick = t => {
+    const a = g.attributes.position;
+    for (let i = 0; i < n; i++) { const ph = base[i * 4 + 3]; a.setXYZ(i, base[i * 4] + Math.sin(t * drift + ph) * 0.6, base[i * 4 + 1] + Math.sin(t * drift * 1.3 + ph * 2) * 0.3, base[i * 4 + 2] + Math.cos(t * drift * 0.8 + ph) * 0.6); }
+    a.needsUpdate = true; if (blink) m.opacity = 0.6 + Math.sin(t * 0.05) * 0.3;
+  };
+  return pts;
+};
+// instanced pebbles
+GFX.pebbles = function (n, col, place, size = 0.12) {
+  const m = new THREE.InstancedMesh(GFX.blob(12, 0.35, 1), GFX.mat(col, { tex: 'rock' }), n), o = new THREE.Object3D(); let k = 0;
+  for (let i = 0; i < n * 3 && k < n; i++) { const p = place(); if (!p) continue; o.position.set(p[0], (p[1] || 0) + 0.02, p[2]); o.rotation.set(Math.random(), Math.random() * 6, 0); const s = size * (0.4 + Math.random()); o.scale.set(s, s * 0.6, s * (0.7 + Math.random() * 0.6)); o.updateMatrix(); m.setMatrixAt(k, o.matrix); m.setColorAt(k++, lin(mixHex(col, Math.random() < 0.5 ? '#ffffff' : '#404040', Math.random() * 0.3))); }
+  m.count = k; m.castShadow = true; m.receiveShadow = true; return m;
+};
+Object.assign(PROPS, {
+  log(r) { const g = new THREE.Group(); const l = mesh(GFX.trunk(0.2, 0.18, 2.2 + r(), 0.1, 10), GFX.mat('#8a7a64', { tex: 'bark' }), 0, 0.15, 0, 1, g); l.rotation.z = Math.PI / 2; l.position.x = -1.1; return g; },
+  agave(r) { const g = new THREE.Group(), m = GFX.mat('#7a9a7a', { rough: 0.6, side: THREE.DoubleSide }); for (let i = 0; i < 12; i++) { const c = mesh(cone(0.09, 0.9 + r() * 0.4, 6), m, 0, 0.4, 0, 1, g); c.rotation.set(0.5 + r() * 0.7, i * 2.4, 0); c.position.set(Math.sin(i * 2.4) * 0.15, 0.35, Math.cos(i * 2.4) * 0.15); } return g; },
+  stoneWall(r, len = 4) { const g = new THREE.Group(); for (let i = 0; i < len * 5; i++) { const x = (i % (len * 2.5)) * 0.4 - len / 2, y = Math.floor(i / (len * 2.5)) * 0.28 + 0.14; mesh(GFX.blob(i % 4 + 10, 0.3, 1), M.rock(mixHex('#b8a888', '#8a7a64', r())), x + r() * 0.1, y, (r() - 0.5) * 0.1, [0.24, 0.16, 0.22], g); } return g; },
+  lantern(r, col = '#ffc870') { const g = new THREE.Group(), dark = GFX.mat('#2a2a2e', { metal: 0.7, rough: 0.4 }); mesh(cyl(0.04, 0.05, 2.2, 10), dark, 0, 1.1, 0, 1, g); mesh(GFX.rbox(0.24, 0.32, 0.24, 0.03), GFX.mat(col, { emissive: col, opacity: 0.85 }), 0, 2.35, 0, 1, g); mesh(cone(0.2, 0.15, 4), dark, 0, 2.58, 0, 1, g).rotation.y = Math.PI / 4; const l = new THREE.PointLight(lin(col), 1.2, 7, 1.5); l.position.set(0, 2.3, 0); g.add(l); return g; },
+  brazier(r) { const g = new THREE.Group(), st = M.stone('#c8b48a'); mesh(cyl(0.12, 0.2, 1.1, 12), st, 0, 0.55, 0, 1, g); mesh(GFX.lathe('bowl', [[0, 0], [0.3, 0.05], [0.42, 0.25], [0.4, 0.28]], 16), GFX.mat('#6a4a2a', { metal: 0.6, rough: 0.4 }), 0, 1.1, 0, 1, g); const f = mesh(cone(0.25, 0.6, 10), GFX.mat('#ffa030', { emissive: '#ff7a10', opacity: 0.85 }), 0, 1.6, 0, 1, g); f.castShadow = false; f.userData.flame = true; const l = new THREE.PointLight(lin('#ff9a40'), 1.6, 10, 1.4); l.position.set(0, 1.9, 0); g.add(l); return g; },
+  lounger(r, col = '#f0f0f0') { const g = new THREE.Group(), w = M.wood('#c8a070'); mesh(GFX.rbox(0.7, 0.08, 1.8, 0.02), w, 0, 0.35, 0, 1, g); const back = mesh(GFX.rbox(0.7, 0.08, 0.7, 0.02), w, 0, 0.6, -0.95, 1, g); back.rotation.x = -0.9; mesh(GFX.rbox(0.62, 0.06, 1.6, 0.03), GFX.mat(col, { tex: 'fabric' }), 0, 0.42, 0.05, 1, g); for (const x of [-0.3, 0.3]) for (const z of [-0.8, 0.8]) mesh(cyl(0.03, 0.03, 0.35, 8), w, x, 0.17, z, 1, g); return g; },
+  parasol(r, col = '#f4f0e8') { const g = new THREE.Group(); mesh(cyl(0.035, 0.035, 2.4, 8), M.wood('#a07a50'), 0, 1.2, 0, 1, g); mesh(cone(1.4, 0.5, 16), GFX.mat(col, { tex: 'fabric', side: THREE.DoubleSide }), 0, 2.45, 0, 1, g); return g; },
+  crate(r) { const g = new THREE.Group(); mesh(GFX.rbox(0.7, 0.7, 0.7, 0.03), M.wood('#a07a4a'), 0, 0.35, 0, 1, g).rotation.y = r(); return g; },
+  barrel(r) { const g = new THREE.Group(); mesh(GFX.lathe('barrel', [[0, 0], [0.28, 0], [0.33, 0.4], [0.28, 0.8], [0, 0.8]], 16), M.wood('#8a5a32'), 0, 0, 0, 1, g); for (const y of [0.12, 0.68]) mesh(new THREE.TorusGeometry(0.3, 0.015, 6, 20), GFX.mat('#4a4a50', { metal: 0.8 }), 0, y, 0, 1, g).rotation.x = Math.PI / 2; return g; },
+  mushroom(r) { const g = new THREE.Group(); for (let i = 0; i < 3; i++) { const x = (r() - 0.5) * 0.4, z = (r() - 0.5) * 0.4, s = 0.6 + r() * 0.6; mesh(cyl(0.025 * s, 0.03 * s, 0.15 * s, 8), GFX.mat('#e8e0d0'), x, 0.075 * s, z, 1, g); mesh(GFX.sphere(0.08 * s, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), GFX.mat('#c8a070'), x, 0.15 * s, z, [1, 0.6, 1], g); } return g; },
+  statue(r) { const g = new THREE.Group(), st = M.stone('#e8e0cc'); mesh(GFX.rbox(1.0, 1.0, 1.0, 0.04), st, 0, 0.5, 0, 1, g); mesh(GFX.sphere(0.3, 16, 12), st, 0, 2.15, 0, [0.9, 1.1, 1], g); mesh(GFX.lathe('torso', [[0.25, 0], [0.32, 0.4], [0.4, 0.8], [0.2, 0.95]].map(([a, b]) => [a, b]), 16), st, 0, 1.0, 0, [1, 1, 0.7], g); mesh(GFX.capsule(0.09, 0.5), st, 0.42, 1.75, 0, 1, g).rotation.z = 0.3; return g; }
+});

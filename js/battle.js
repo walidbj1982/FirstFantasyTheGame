@@ -664,13 +664,13 @@ class BattleView {
       this.anchor(e, m, m.userData.h * 0.5);
     }
     // camera: spin-in at the start, nudges toward whoever acts, swings round for the victory pose
-    let ang = 0.5, rad = 13.0, hgt = 4.0, look = [0, 1.15, -0.6];
+    let ang = 0.5, rad = 11.2, hgt = 3.6, look = [0, 1.15, -0.8];
     if (b.state === 'intro' || b.t < 70) { const k = Math.min(1, b.t / 70), e = 1 - Math.pow(1 - k, 3); ang = 0.5 + 2.7 * (1 - e); rad = 7 + 6 * e; hgt = 7 - 3 * e; }
     else if (b.state === 'victory') { ang = 2.95; rad = 9.5; hgt = 2.6; look = [0.6, 1.9, 3.0]; }
     else if (b.busy && b.acting) {
       const a = b.acting, ax = a.model ? a.model.position.x : 0;
-      if (a.isEnemy) { ang = -0.3; rad = 11.5; look = [ax * 0.5, 0.9, -1]; }
-      else { ang = 0.65; rad = 10.5; hgt = 4.2; look = [ax * 0.4, 0.9, 0.5]; }
+      if (a.isEnemy) { ang = -0.3; rad = 10.5; look = [ax * 0.5, 0.9, -1]; }
+      else { ang = 0.65; rad = 9.2; hgt = 3.4; look = [ax * 0.4, 1.0, 0.5]; }
       if (b.bursting) { ang = 0.4 + Math.sin(t * 0.02) * 1.1; rad = 9.5; }
     } else ang += Math.sin(t * 0.004) * 0.12;
     const k = b.t < 70 ? 1 : 0.06;

@@ -8,8 +8,10 @@
 //  look      : colours of the 3D model. Optional costume parts:
 //              cap, headband (colours), glasses (true), dress (colour),
 //              sleeveless (true), sleeve (t-shirt sleeve colour), gunArm (true),
-//              weapon ('katana'), coat (true), vneck (true), baggy (true), bulk (1.2 = muscular),
-//              hairLen, hairStyle: 'short' | 'long' | 'spiky' | 'hood' | 'buzz'
+//              weapon ('katana'), costume layers: vest | gi | tank | jacket | coat (true),
+//              shirt (colour under a vest/jacket), tornSleeve, baggy, tornHem, wraps, gloves, chain,
+//              shoulderPad, wristband, cargo, capPanel/capLogo, bulk (1.38 = very muscular), hairLen,
+//              'flattop' hair, hairStyle: 'short' | 'long' | 'spiky' | 'hood' | 'buzz'
 //  portrait  : photo of the actor (square, e.g. 128x128)
 //  voice     : synthesised talk blip when there is no recorded clip
 //  clips     : voice lines cut from the movie (tools/cut_audio.sh)
@@ -23,8 +25,8 @@ window.CAST = {
   hero1: {
     name: 'Terry Bogard', actor: 'Actor (Terry)', job: 'brawler', title: 'The Lone Wolf',
     burstName: 'Lone Wolf Rush',
-    look: { skin: '#d8a47a', hair: '#2a1c12', hairStyle: 'short', cap: '#e4ddcc', outfit: '#b02a24', outfit2: '#8a1c18',
-            sleeve: '#f2f2ee', accent: '#e8c050', pants: '#3a5888', boots: '#5a3a20', eyes: '#2a1a10' },
+    look: { skin: '#d8a47a', hair: '#2a1c12', hairStyle: 'short', cap: '#b02a24', capPanel: '#f0ece4', capLogo: '#c82a20', outfit: '#a8221e', outfit2: '#7a1814',
+            vest: true, shirt: '#f2f2ee', sleeve: '#f2f2ee', tornSleeve: true, gloves: '#161616', bulk: 1.15, accent: '#2a2a2a', pants: '#3a5888', boots: '#5a3a20', eyes: '#2a3a50' },
     voice: { pitch: 150, wave: 'square' },
     portrait: 'assets/portraits/terry.png',
     clips: {},
@@ -33,8 +35,8 @@ window.CAST = {
   hero2: {
     name: 'Ryu', actor: 'Actor (Ryu)', job: 'monk', title: 'The Wandering Fighter',
     burstName: 'Dragon Wave',
-    look: { skin: '#b9845a', hair: '#141010', hairStyle: 'short', headband: '#c4201c', outfit: '#f2f2ee', outfit2: '#dcdcd6',
-            sleeveless: true, vneck: true, baggy: true, accent: '#1a1a1a', pants: '#f2f2ee', boots: '#b9845a', eyes: '#1a1010' },
+    look: { skin: '#b9845a', hair: '#141010', hairStyle: 'spiky', headband: '#c4201c', bandTails: 0.36, outfit: '#f0eee8', outfit2: '#dcdcd6',
+            gi: true, sleeveless: true, baggy: true, tornHem: true, wraps: '#7a1a14', bulk: 1.15, accent: '#141414', pants: '#f0eee8', boots: '#b9845a', eyes: '#3a2414' },
     voice: { pitch: 175, wave: 'triangle' },
     portrait: 'assets/portraits/ryu.png',
     clips: {},
@@ -43,8 +45,8 @@ window.CAST = {
   hero3: {
     name: 'Barret', actor: 'Actor (Barret)', job: 'gunner', title: 'The Gun-Arm',
     burstName: 'Heavy Barrage',
-    look: { skin: '#c69466', hair: '#1a1410', hairStyle: 'buzz', bulk: 1.2, stubble: true, outfit: '#4a5638', outfit2: '#3a4430', sleeveless: true,
-            gunArm: true, accent: '#6a5a3a', pants: '#3a3a36', boots: '#2a2420', eyes: '#1a1010' },
+    look: { skin: '#b07850', hair: '#141010', hairStyle: 'flattop', bulk: 1.38, stubble: true, beard: '#1a1410', outfit: '#4a5638', outfit2: '#3a4430', sleeveless: true,
+            tank: true, chain: true, shoulderPad: '#7a5434', wristband: true, cargo: true, gunArm: true, accent: '#5a4a32', pants: '#3e4a34', boots: '#2a2420', eyes: '#2a1a10' },
     voice: { pitch: 105, wave: 'sawtooth' },
     portrait: 'assets/portraits/barret.png',
     clips: {},
@@ -55,7 +57,7 @@ window.CAST = {
   villain1: {
     name: 'Sephiroth', actor: 'Actor (Sephiroth)', title: 'Seeker of the Pendant',
     look: { skin: '#d8c0b0', hair: '#e8dce4', hairStyle: 'long', outfit: '#141414', outfit2: '#222226', accent: '#8a8a90',
-            pants: '#141414', boots: '#0a0a0a', eyes: '#50ff90', fierce: true, weapon: 'katana', coat: true, hairLen: 1.0 },
+            pants: '#141414', boots: '#0a0a0a', eyes: '#50ff90', fierce: true, weapon: 'katana', coat: true, shirt: '#1a1a1e', hairLen: 1.0, bulk: 1.1 },
     voice: { pitch: 90, wave: 'sawtooth' },
     portrait: 'assets/portraits/sephiroth.png',
     clips: {},
@@ -72,7 +74,7 @@ window.CAST = {
   },
   villain3: {
     name: 'Kyo Kusanagi', actor: 'Actor (Kyo)', title: 'The Old Friend',
-    look: { skin: '#d0a07a', hair: '#141010', hairStyle: 'short', headband: '#f0f0f0', outfit: '#151515', outfit2: '#0e0e0e',
+    look: { skin: '#d0a07a', hair: '#2a1a12', hairStyle: 'spiky', headband: '#f0f0f0', jacket: true, shirt: '#e8e8e8', outfit: '#151515', outfit2: '#0e0e0e',
             accent: '#9a9a9a', pants: '#7a8aa8', boots: '#3a3a3a', eyes: '#1a1010' },
     voice: { pitch: 140, wave: 'square' },
     portrait: 'assets/portraits/kyo.png',

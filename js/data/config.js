@@ -40,3 +40,5 @@ window.CONFIG = {
     // battle: 'assets/music/battle.mp3',
   }
 };
+// ?gfx=low in the page address forces the light graphics mode
+try { if (/[?&]gfx=low/.test(location.search)) CONFIG.graphics = 'low'; } catch (e) {}

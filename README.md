@@ -42,12 +42,15 @@ The game saves to the browser (3 slots). Save on the world map, at blue crystals
 
 ## What's in the game
 
-- **HD 3D graphics in the spirit of FF7:** smooth, detailed character models (costumes, hair,
-  painted faces, Barret's gun-arm, Sephiroth's coat and katana), real-time battles with soft shadows,
+- **HD 3D graphics in the spirit of FF7 and modern fighting games:** muscular, detailed character
+  models with layered costumes (Terry's quilted vest, popped collar and fingerless gloves, Ryu's
+  crossover gi, black belt and torn hems, Barret's tank top, shoulder pad and Gatling arm, Sephiroth's
+  leather coat and katana), painted faces and hair, real-time battles with soft shadows,
   painted sky panoramas (Mediterranean villages, sea horizons, canyon mesas, the starry night forest),
   sky-lit materials and generated textures (grass, sand, cobblestones, whitewash, ancient stone,
-  wood, water). The scenery is filled with umbrella pines, cypresses, olive trees, palms,
-  bougainvillea and swaying grass. All of it is generated in code, so the game stays a single small file.
+  wood, water, leather). The scenery is filled with umbrella pines, cypresses, olive trees, palms,
+  bougainvillea, grass, dry-stone walls, agaves, driftwood, lanterns, braziers, statues, loungers and
+  barrels, with fireflies, dust and embers in the air. All of it is generated in code, so the game stays a single small file.
   Set `graphics: 'low'` in `js/data/config.js` for older phones.
 - **Faces:** the 3D models get painted faces in each actor's colours, and the actors' real photos
   appear in dialogue, menus, the battle bar and the cast screen. With sharp, front-facing photos,

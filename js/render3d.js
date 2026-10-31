@@ -23,7 +23,7 @@ const R3 = {
     const el = document.getElementById('screen'), cssW = (el && el.clientWidth) || 960;
     const coarse = matchMedia('(pointer: coarse)').matches, low = (window.CONFIG && CONFIG.graphics) === 'low';
     const dpr = Math.min(window.devicePixelRatio || 1, coarse || low ? 1.5 : 2);
-    const w = Math.round(clamp(cssW * dpr, 640, coarse || low ? 1280 : 1920)), h = Math.round(w * SH / SW);
+    const w = Math.round(clamp(cssW * dpr, 640, low ? 960 : coarse ? 1280 : 1920)), h = Math.round(w * SH / SW);
     if (w !== this.W || h !== this.H || !this.sized) { this.W = w; this.H = h; this.sized = true; this.renderer.setPixelRatio(1); this.renderer.setSize(w, h, false); }
   },
   beginFrame() { this.used = false; },
@@ -31,9 +31,23 @@ const R3 = {
   render(scene, camera) {
     if (!this.ok) return;
     if (G.shake > 0) { camera.position.x += rand(-0.08, 0.08); camera.position.y += rand(-0.05, 0.05); }
+    (this.seen || (this.seen = new Map())).set(scene, G.frame);
     const ud = scene.userData; if (ud.tick) ud.tick(G.frame);
     if (ud.sky) ud.sky.position.copy(camera.position);
     this.renderer.render(scene, camera); this.used = true;
+  },
+  // free GPU memory of scenes that have not been drawn for a while (they re-upload if shown again)
+  sweep() {
+    if (!this.seen) return;
+    const keepG = new Set([...Object.values(GFX.geos), ...Object.values(GEO)]), keepM = new Set(Object.values(GFX.mats));
+    for (const [sc, f] of this.seen) {
+      if (G.frame - f < 240) continue;
+      sc.traverse(o => {
+        if (o.geometry && !keepG.has(o.geometry)) o.geometry.dispose();
+        if (o.material && !keepM.has(o.material)) { if (o.material.map && o.material.map.isTexture && !Object.values(GFX.tex).includes(o.material.map) && !Object.values(HeadTex).includes(o.material.map)) o.material.map.dispose(); o.material.dispose(); }
+      });
+      this.seen.delete(sc);
+    }
   },
   // world position -> 320x240 screen coordinates of the 2D layer
   project(v, camera) { const p = v.clone().project(camera); return [(p.x + 1) / 2 * SW, (1 - p.y) / 2 * SH, p.z]; }
@@ -101,24 +115,27 @@ function paintFace(g, look, fx, fy) {
     rg(fx, fy + 34, 6, 42, 'rgba(40,30,25,0.28)', 'rgba(40,30,25,0.06)'); g.fillStyle = 'rgba(30,20,15,0.22)';
     for (let i = 0; i < 2500; i++) g.fillRect(fx - 42 + Math.random() * 84, fy + 18 + Math.random() * 44, 1, 1);
     g.restore(); }
+  if (!female) { for (const s of [-1, 1]) { rg(fx + s * 34, fy + 12, 2, 14, 'rgba(60,30,20,0.2)', 'rgba(60,30,20,0)'); g.strokeStyle = 'rgba(80,40,30,0.3)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(fx + s * 9, fy + 16); g.quadraticCurveTo(fx + s * 15, fy + 26, fx + s * 13, fy + 34); g.stroke(); } }
   // eyes
   for (const s of [-1, 1]) {
     const x = fx + s * 22, y = fy - 3;
-    g.fillStyle = '#f2ece4'; g.beginPath(); g.ellipse(x, y, 10.5, 5.6, 0, 0, 7); g.fill();
-    g.save(); g.beginPath(); g.ellipse(x, y, 10.5, 5.6, 0, 0, 7); g.clip();
+    const ew = female ? 10.5 : 9.5, eh = female ? 5.6 : 4.4;
+    g.fillStyle = '#f2ece4'; g.beginPath(); g.ellipse(x, y, ew, eh, 0, 0, 7); g.fill();
+    g.save(); g.beginPath(); g.ellipse(x, y, ew, eh, 0, 0, 7); g.clip();
     g.fillStyle = shade(eye, -0.35); g.beginPath(); g.arc(x - s * 0.5, y + 0.3, 5.4, 0, 7); g.fill();
     g.fillStyle = eye; g.beginPath(); g.arc(x - s * 0.5, y + 0.6, 4.3, 0, 7); g.fill();
     g.fillStyle = '#0a0808'; g.beginPath(); g.arc(x - s * 0.5, y + 0.4, 2.1, 0, 7); g.fill();
     g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x - 12, y - 6, 24, 2.5);
     g.restore();
     g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x - s * 0.5 + 1.6, y - 1.4, 1.3, 0, 7); g.fill();
-    g.strokeStyle = '#1a1010'; g.lineWidth = female ? 2.6 : 2; g.beginPath(); g.ellipse(x, y + 0.5, 11, 6.2, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+    g.strokeStyle = '#1a1010'; g.lineWidth = female ? 2.6 : 2.4; g.beginPath(); g.ellipse(x, y + 0.5, ew + 0.5, eh + 0.8, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
     g.strokeStyle = 'rgba(80,40,30,0.35)'; g.lineWidth = 1; g.beginPath(); g.ellipse(x, y - 0.5, 10.5, 6, 0, Math.PI * 0.12, Math.PI * 0.88); g.stroke();
     g.strokeStyle = shade(skin, -0.25); g.beginPath(); g.ellipse(x, y - 2.5, 11.5, 7, 0, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
     if (female) for (let k = 0; k < 4; k++) { const a = Math.PI * (1.6 + s * 0.08 + k * 0.08 * s); g.beginPath(); g.moveTo(x + Math.cos(a) * 11, y + 0.5 + Math.sin(a) * 6.2); g.lineTo(x + Math.cos(a) * 14, y - 1 + Math.sin(a) * 8); g.stroke(); }
     // brow
     g.strokeStyle = shade(look.hair === '#e8dce4' ? '#a09098' : look.hair, -0.15); g.lineWidth = female ? 2.4 : 4; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(x - s * 11, y - 11 + (female ? 0 : 1)); g.quadraticCurveTo(x, y - (female ? 16 : 14.5), x + s * 12, y - 10 - (look.fierce ? -3 : 0)); g.stroke();
+    if (female) { g.beginPath(); g.moveTo(x - s * 11, y - 11); g.quadraticCurveTo(x, y - 16, x + s * 12, y - 10); g.stroke(); }
+    else { g.lineWidth = 4.5; g.beginPath(); g.moveTo(x - s * 11, y - 6); g.quadraticCurveTo(x, y - 11, x + s * 13, y - 11); g.stroke(); }
   }
   // nose
   const ng = g.createLinearGradient(fx - 7, 0, fx + 7, 0); ng.addColorStop(0, 'rgba(90,45,35,0.28)'); ng.addColorStop(0.5, 'rgba(255,240,230,0.12)'); ng.addColorStop(1, 'rgba(90,45,35,0.18)');
@@ -151,127 +168,267 @@ function hairGeo(r, ps, pl, ts, tl, jag, v) {
 // ------------------------------------------------------------------ characters
 // Realistic-ish proportions (about 7 heads tall, like late-90s battle models). Faces +z, feet at y=0.
 // Pivots in userData.P: hips > torso > head / arms[sh > el > hand], hips > legs[hip > kn].
+// Body shells: a lathe-like surface where each row can have its own opening (V-necks, open vests),
+// with a deformation hook for muscles, quilting and torn hems. prof: [[y, r], ...] with y increasing.
+function shellGeo(key, prof, o = {}) {
+  key = 'shell' + key;
+  if (GFX.geos[key]) return GFX.geos[key];
+  const rows = o.rows || 30, seg = o.seg || 40, k = o.k || 1;
+  const y0 = o.y0 != null ? o.y0 : prof[0][0], y1 = o.y1 != null ? o.y1 : prof[prof.length - 1][0];
+  const R = y => { // smooth interpolation through the profile
+    if (y <= prof[0][0]) return prof[0][1];
+    for (let i = 1; i < prof.length; i++) if (y <= prof[i][0]) { const [ya, ra] = prof[i - 1], [yb, rb] = prof[i], t = (y - ya) / (yb - ya), s = t * t * (3 - 2 * t); return ra + (rb - ra) * s; }
+    return prof[prof.length - 1][1];
+  };
+  const pos = [], uv = [], idx = [], closedRow = [];
+  for (let i = 0; i <= rows; i++) {
+    const y = y0 + (y1 - y0) * i / rows, gap = o.gap ? o.gap(y) : 0, rng = o.range ? o.range(y) : null;
+    const p0 = rng ? rng[0] : o.gap ? gap : Math.PI, p1 = rng ? rng[1] : o.gap ? Math.PI * 2 - gap : Math.PI * 3;
+    closedRow.push(!rng && gap <= 0);
+    for (let j = 0; j <= seg; j++) {
+      const phi = p0 + (p1 - p0) * j / seg, r = R(y) * k + (o.def ? o.def(y, phi, j / seg, i / rows) : 0);
+      let yy = y + (o.dy ? o.dy(y, phi, j / seg, i / rows) : 0);
+      pos.push(r * Math.sin(phi), yy, r * Math.cos(phi)); uv.push(j / seg * (o.uRep || 1), (y - y0) / (y1 - y0) * (o.vRep || 1));
+    }
+  }
+  for (let i = 0; i < rows; i++) for (let j = 0; j < seg; j++) { const a = i * (seg + 1) + j, b = a + seg + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+  g.computeVertexNormals();
+  const n = g.attributes.normal; // weld the seam normals of closed rows
+  for (let i = 0; i <= rows; i++) if (closedRow[i]) { const a = i * (seg + 1), b = a + seg; const x = n.getX(a) + n.getX(b), y = n.getY(a) + n.getY(b), z = n.getZ(a) + n.getZ(b), l = Math.hypot(x, y, z) || 1; n.setXYZ(a, x / l, y / l, z / l); n.setXYZ(b, x / l, y / l, z / l); }
+  return (GFX.geos[key] = g);
+}
+const gauss = (x, w) => Math.exp(-(x / w) * (x / w));
+// heroic torso profile (waist at y=0, neck at 0.71); female profile is slimmer with a narrower waist
+const TORSO_M = [[-0.02, 0.16], [0.06, 0.166], [0.16, 0.172], [0.26, 0.188], [0.36, 0.214], [0.44, 0.24], [0.52, 0.255], [0.58, 0.252], [0.63, 0.215], [0.67, 0.15], [0.7, 0.075], [0.715, 0.0]];
+const TORSO_F = [[-0.02, 0.16], [0.06, 0.145], [0.16, 0.14], [0.26, 0.155], [0.36, 0.185], [0.44, 0.2], [0.52, 0.2], [0.58, 0.195], [0.63, 0.17], [0.67, 0.12], [0.7, 0.06], [0.715, 0.0]];
+function muscleDef(m, female) {
+  return (y, phi) => {
+    const front = Math.max(0, Math.cos(phi)), side = Math.abs(Math.sin(phi)), back = Math.max(0, -Math.cos(phi));
+    if (female) return 0.03 * gauss(y - 0.47, 0.07) * Math.pow(front, 2) * (1 - 0.7 * gauss(Math.sin(phi), 0.14)) * m;
+    const pec = 0.03 * gauss(y - 0.5, 0.075) * Math.pow(front, 1.2) * (1 - 0.65 * gauss(Math.sin(phi), 0.11));
+    const abs = 0.007 * gauss(y - 0.24, 0.13) * Math.pow(front, 2) * (0.5 + 0.5 * Math.cos(y * 78)) * (1 - 0.6 * gauss(Math.sin(phi), 0.05));
+    const lats = 0.02 * gauss(y - 0.42, 0.1) * side, blades = 0.012 * gauss(y - 0.52, 0.08) * back;
+    return (pec + abs + lats + blades) * m;
+  };
+}
+// limb profiles ([y, r], y increasing, top of the limb at y=0)
+const LIMB = {
+  upper: [[-0.335, 0.05], [-0.3, 0.06], [-0.2, 0.082], [-0.12, 0.09], [-0.05, 0.088], [0.0, 0.075], [0.035, 0.0]],
+  fore: [[-0.31, 0.04], [-0.27, 0.045], [-0.18, 0.06], [-0.08, 0.072], [-0.02, 0.064], [0.025, 0.0]],
+  thigh: [[-0.49, 0.068], [-0.43, 0.075], [-0.3, 0.095], [-0.15, 0.105], [-0.04, 0.104], [0.03, 0.0]],
+  shin: [[-0.46, 0.045], [-0.4, 0.05], [-0.3, 0.068], [-0.17, 0.08], [-0.06, 0.07], [0.02, 0.0]],
+  baggyThigh: [[-0.49, 0.118], [-0.3, 0.13], [-0.1, 0.135], [0.02, 0.12], [0.05, 0.0]],
+  baggyShin: [[-0.43, 0.13], [-0.3, 0.125], [-0.12, 0.118], [0.02, 0.11], [0.04, 0.0]]
+};
+const limbG = (name, k = 1, def, zs) => shellGeo(name + k + (def ? 'd' : ''), LIMB[name].map(([y, r]) => [y, r * k]), { rows: 18, seg: 18, def });
+// bicep/calf bulge toward the front or back of a limb
+const bulge = (y0, w, amt, dir = 1) => (y, phi) => amt * gauss(y - y0, w) * Math.max(0, Math.cos(phi) * dir);
+const tornHem = (yHem, depth) => (y, phi, u) => 0; // (kept for symmetry: torn edges are made with dy below)
+const jagDy = (yEdge, band, depth, teeth, seed = 0) => (y, phi) => { const e = gauss(y - yEdge, band); return -e * depth * Math.pow(0.5 + 0.5 * Math.sin(phi * teeth + seed), 3); };
+
 function buildCharacter(look, castId, job) {
   const root = new THREE.Group(), P = {};
-  const bulk = look.bulk || 1, R = 0.215;
+  const female = !!(look.dress || look.female), bulk = look.bulk || (female ? 0.9 : 1.08), R = 0.2;
   const hood = look.hairStyle === 'hood';
   const hairC = hood ? look.outfit2 : look.hair, out = look.outfit, out2 = look.outfit2 || shade(out, -0.3);
   const acc = look.accent || '#e0c050', skin = look.skin, dress = look.dress;
-  const pantsC = dress ? skin : (look.pants || '#333344'), bootsC = look.boots || out2;
-  const sleeveless = !!look.sleeveless, tee = !!look.sleeve && !sleeveless;
-  const shirt = look.shirt || (look.sleeve && look.sleeve !== out ? look.sleeve : null);
+  const pantsC = dress ? skin : (look.pants || '#333344'), bootsC = look.boots || out2, barefoot = bootsC === skin;
+  const tee = !!look.sleeve && !look.sleeveless;
+  const over = look.gi ? 'gi' : look.vest ? 'vest' : look.tank ? 'tank' : (look.jacket || look.coat) ? 'jacket' : null;
+  const bareArms = !!look.sleeveless || tee || over === 'vest';
+  const bodyC = over === 'gi' || over === 'tank' ? skin : over === 'vest' ? (look.shirt || '#f2f2ee') : over === 'jacket' ? (look.shirt || out2) : tee ? look.sleeve : out;
   const cloth = (c, o = {}) => GFX.mat(c, { tex: 'fabric', rough: 0.85, ...o });
   const bluish = h => { const k = new THREE.Color(h); return k.b > k.r + 0.05 && k.b > 0.25; };
-  const skinM = GFX.mat(skin, { rough: 0.55 }), hairM = GFX.mat(hairC, { tex: 'hair', rough: 0.45 });
+  const skinM = GFX.mat(skin, { tex: 'skin', rough: 0.5 }), hairM = GFX.mat(hairC, { tex: 'hair', rough: 0.45 });
   const pantsM = dress ? skinM : bluish(pantsC) ? GFX.mat(pantsC, { tex: 'denim', rough: 0.9 }) : cloth(pantsC);
-  const bootM = bootsC === skin ? skinM : GFX.mat(bootsC, { rough: 0.5 });
+  const bootM = barefoot ? skinM : GFX.mat(bootsC, { tex: 'leather', rough: 0.45 });
+  const bodyM = bodyC === skin ? skinM : cloth(bodyC);
   const part = (parent, geo, m, x = 0, y = 0, z = 0, s = 1, rot) => { const o = mesh(geo, m, x, y, z, s, parent); if (rot) o.rotation.set(rot[0], rot[1] || 0, rot[2] || 0); return o; };
+  const TP = female ? TORSO_F : TORSO_M, tS = [bulk, 1, 0.66], mus = muscleDef(bodyC === skin ? 1 : 0.55, female);
+  // a point on the torso surface (for pockets, buckles, straps)
+  const surf = (y, phi, k = 1, lift = 0) => { let r = TP[0][1]; for (let i = 1; i < TP.length; i++) if (y <= TP[i][0]) { const [ya, ra] = TP[i - 1], [yb, rb] = TP[i]; r = ra + (rb - ra) * (y - ya) / (yb - ya); break; } r = r * k + mus(y, phi) + lift; return [r * Math.sin(phi) * tS[0], y, r * Math.cos(phi) * tS[2]]; };
 
-  const hipY = 1.03; P.hipY = hipY;
+  const hipY = 1.05; P.hipY = hipY;
   P.hips = pivot(root, 0, hipY, 0);
-  part(P.hips, GFX.sphere(0.2, 18, 12), pantsM, 0, -0.02, 0, [1.0 * bulk, 0.62, 0.72]);
+  part(P.hips, GFX.sphere(0.2, 20, 14), pantsM, 0, -0.03, 0, [(female ? 1.08 : 0.98) * bulk, 0.64, 0.74]);
   P.torso = pivot(P.hips, 0, 0, 0);
-  const TP = [[0, 0], [0.17, 0], [0.185, 0.06], [0.175, 0.18], [0.19, 0.3], [0.225, 0.44], [0.235, 0.54], [0.2, 0.62], [0.1, 0.67], [0, 0.68]];
-  const tS = [bulk, 1, 0.64];
-  part(P.torso, GFX.lathe('torso', TP, 24), cloth(out), 0, 0, 0, tS);
-  if (shirt) part(P.torso, GFX.lathe('shirt', TP.map(([x, y]) => [x * 1.03, y]), 10, -0.36, 0.72), cloth(shirt), 0, 0, 0, tS);
-  if (look.vneck) part(P.torso, GFX.lathe('vneck', TP.filter(p => p[1] >= 0.4).map(([x, y]) => [x * 1.035, y]), 8, -0.2, 0.4), skinM, 0, 0, 0, tS);
-  part(P.torso, GFX.lathe('belt', [[0.176, -0.01], [0.19, 0.01], [0.19, 0.07], [0.176, 0.09]], 24), GFX.mat(acc, { rough: 0.45 }), 0, 0, 0, [bulk * 1.03, 1, 0.66]);
-  if (look.coat) { // long coat tails, open at the front
-    part(P.torso, GFX.lathe('coat', [[0.19, 0.16], [0.2, 0.02], [0.25, -0.3], [0.3, -0.62], [0.34, -0.9]], 24, 0.4, Math.PI * 2 - 0.8), cloth(out, { side: THREE.DoubleSide }), 0, 0, 0, [bulk, 1, 0.78]);
-    for (const s of [-1, 1]) part(P.torso, GFX.sphere(0.12, 14, 10), GFX.mat('#6a6a74', { metal: 0.8, rough: 0.35, tex: 'metal' }), s * 0.25, 0.6, 0, [1.1, 0.6, 1]);
+  part(P.torso, shellGeo((female ? 'F' : 'M') + (bodyC === skin ? 's' : 'c'), TP, { def: mus, rows: 36, seg: 44 }), bodyM, 0, 0, 0, tS);
+  // traps and neck
+  part(P.torso, GFX.sphere(0.12, 18, 12), bodyC === skin || over === 'vest' || over === 'tank' ? (over === 'vest' ? bodyM : skinM) : bodyM, 0, 0.64, -0.02, [1.25 * bulk, 0.5, 0.8]);
+  part(P.torso, shellGeo('neck', [[0.6, 0.075], [0.72, 0.068], [0.84, 0.064], [0.86, 0]], { rows: 6, seg: 16 }), skinM, 0, 0, 0, [bulk * 0.95, 1, 0.95]);
+  const dbl = { side: THREE.DoubleSide };
+  if (over === 'vest') { // quilted, open puffer vest with a popped collar, white zip edges and chest pockets
+    const vm = GFX.mat(out, { tex: 'quilt', rough: 0.55, side: THREE.DoubleSide }), white = cloth('#f0f0ec');
+    const gap = y => 0.36 + Math.max(0, y - 0.5) * 1.6;
+    part(P.torso, shellGeo('vest' + female, TP, { k: 1.1, y0: -0.04, y1: 0.66, gap, def: (y, p) => mus(y, p) * 0.6 + 0.007 * Math.abs(Math.sin(y * Math.PI * 11)), rows: 40, seg: 44 }), vm, 0, 0, 0, tS);
+    for (const s of [-1, 1]) part(P.torso, shellGeo('zip' + s, TP, { k: 1.13, y0: -0.04, y1: 0.62, range: y => s > 0 ? [gap(y), gap(y) + 0.05] : [Math.PI * 2 - gap(y) - 0.05, Math.PI * 2 - gap(y)], rows: 20, seg: 2 }), white, 0, 0, 0, tS);
+    part(P.torso, shellGeo('collar', [[0.6, 0.2], [0.68, 0.155], [0.76, 0.16], [0.8, 0.175]], { range: () => [0.55, Math.PI * 2 - 0.55], rows: 8, seg: 30 }), vm, 0, 0, -0.01, [bulk * 1.05, 1, 0.85]);
+    for (const s of [-1, 1]) { const [x, y, z] = surf(0.42, s * 0.75, 1.1, 0.01); const pk = part(P.torso, GFX.rbox(0.11, 0.012, 0.012, 0.005), white, x, y, z, 1); pk.rotation.y = s * 0.75; }
+    part(P.torso, shellGeo('vhem', TP, { k: 1.12, y0: -0.05, y1: -0.0, gap: () => 0.4, rows: 2, seg: 30 }), GFX.mat(shade(out, -0.3), { rough: 0.6, side: THREE.DoubleSide }), 0, 0, 0, tS);
+  } else if (over === 'gi') { // crossover karate top: V opening, lapels, flared skirt below the belt
+    const gm = cloth(out, dbl), lap = cloth(shade(out, -0.06), dbl);
+    const gap = y => y > 0.24 ? 0.62 * (y - 0.24) / 0.46 : 0;
+    part(P.torso, shellGeo('gi', TP, { k: 1.06, y0: -0.02, y1: 0.69, gap, def: (y, p) => mus(y, p) * 0.7, rows: 36, seg: 44 }), gm, 0, 0, 0, tS);
+    for (const s of [-1, 1]) part(P.torso, shellGeo('lapel' + s, TP, { k: 1.09, y0: 0.2, y1: 0.69, range: y => s > 0 ? [gap(y), gap(y) + 0.13] : [Math.PI * 2 - gap(y) - 0.13, Math.PI * 2 - gap(y)], def: (y, p) => mus(y, p) * 0.7, rows: 20, seg: 3 }), lap, 0, 0, 0, tS);
+    part(P.torso, shellGeo('giskirt', [[-0.24, 0.215], [-0.1, 0.19], [0.02, 0.172]], { rows: 6, seg: 36, dy: jagDy(-0.24, 0.02, 0.03, 9, 1) }), gm, 0, 0, 0, [bulk * 1.06, 1, 0.74]);
+  } else if (over === 'tank') {
+    const gap = y => y > 0.48 ? Math.min(0.75, (y - 0.48) * 4) : 0;
+    part(P.torso, shellGeo('tank' + female, TP, { k: 1.03, y0: -0.03, y1: 0.66, gap, def: mus, rows: 36, seg: 44 }), cloth(out, dbl), 0, 0, 0, tS);
+    part(P.torso, shellGeo('tankback', TP, { k: 1.035, y0: 0.5, y1: 0.66, range: () => [Math.PI - 0.6, Math.PI + 0.6], def: mus, rows: 6, seg: 12 }), cloth(out, dbl), 0, 0, 0, tS);
+  } else if (over === 'jacket') {
+    const jm = cloth(out, { ...dbl, tex: look.coat ? 'leather' : 'fabric', rough: look.coat ? 0.5 : 0.85 });
+    const gap = y => 0.22 + Math.max(0, y - 0.4) * 1.0;
+    part(P.torso, shellGeo('jacket' + female, TP, { k: 1.08, y0: -0.06, y1: 0.66, gap, def: (y, p) => mus(y, p) * 0.5, rows: 30, seg: 44 }), jm, 0, 0, 0, tS);
+    part(P.torso, shellGeo('jcollar', [[0.6, 0.19], [0.68, 0.15], [0.74, 0.16]], { range: () => [0.5, Math.PI * 2 - 0.5], rows: 6, seg: 30 }), jm, 0, 0, -0.01, [bulk * 1.05, 1, 0.85]);
+    if (look.coat) {
+      part(P.torso, GFX.lathe('coat', [[0.21, 0.02], [0.23, -0.1], [0.27, -0.35], [0.31, -0.62], [0.35, -0.92]].map(([r, y]) => [r, y]).reverse().map(([r, y]) => [r, y]), 28, 0.42, Math.PI * 2 - 0.84), jm, 0, 0, 0, [bulk, 1, 0.8]);
+      for (const s of [-1, 1]) part(P.torso, GFX.sphere(0.13, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.55), GFX.mat('#5a5c64', { metal: 0.85, rough: 0.3, tex: 'metal' }), s * 0.28 * bulk, 0.6, 0, [1.2, 0.8, 1.1], [0, 0, -s * 0.3]);
+      part(P.torso, GFX.rbox(0.05, 0.62, 0.015, 0.006), GFX.mat('#2a2a2e', { tex: 'leather', rough: 0.5 }), 0, 0.33, 0.17, 1, [0, 0, 0.55]);
+    }
   }
-  if (dress) part(P.hips, GFX.lathe('dress', [[0.19, 0.08], [0.2, 0], [0.26, -0.22], [0.33, -0.45], [0.37, -0.56]], 24), cloth(dress, { side: THREE.DoubleSide }), 0, 0, 0, [bulk, 1, 0.8]);
+  // belt
+  part(P.torso, shellGeo('belt' + female, TP, { k: 1.11, y0: -0.02, y1: 0.06, rows: 2, seg: 36 }), GFX.mat(acc, { tex: 'leather', rough: 0.45 }), 0, 0, 0, [bulk, 1, 0.67]);
+  if (over === 'gi') { // knot and hanging tails
+    const bm = cloth(acc); const [x, y, z] = surf(0.02, 0, 1.13);
+    part(P.torso, GFX.sphere(0.04, 12, 8), bm, x, y + 0.02, z + 0.01, [1.2, 0.9, 0.7]);
+    for (const s of [-1, 1]) part(P.torso, GFX.rbox(0.045, 0.32, 0.014, 0.006), bm, x + s * 0.035, y - 0.15, z + 0.02, 1, [0.05, 0, s * 0.12]);
+  } else if (!dress) { const [x, y, z] = surf(0.02, 0, 1.13); part(P.torso, GFX.rbox(0.07, 0.055, 0.015, 0.006), GFX.mat('#c8a848', { metal: 0.9, rough: 0.3 }), x, y + 0.01, z + 0.005); }
+  if (look.chain) part(P.torso, new THREE.TorusGeometry(0.15, 0.006, 6, 32), GFX.mat('#d0d4dc', { metal: 0.9, rough: 0.25 }), 0, 0.6, 0.07, [bulk * 0.9, 1, 1], [1.2]);
+  if (dress) {
+    part(P.torso, shellGeo('bodice', TP, { k: 1.04, y0: -0.02, y1: 0.6, gap: y => y > 0.52 ? (y - 0.52) * 5 : 0, def: mus }), cloth(dress, dbl), 0, 0, 0, tS);
+    part(P.hips, GFX.lathe('dress', [[0.19, 0.08], [0.2, 0], [0.26, -0.22], [0.33, -0.45], [0.38, -0.58]].reverse().map(([r, y]) => [r, y]).reverse(), 28), cloth(dress, dbl), 0, 0, 0, [bulk, 1, 0.8]);
+  }
 
-  // neck and head
-  part(P.torso, GFX.capsule(0.065, 0.1), skinM, 0, 0.77, 0);
-  P.head = pivot(P.torso, 0, 0.7, 0);
-  const HY = 0.225, hs = [0.9, 1.06, 0.98];
-  const headM = new THREE.MeshStandardMaterial({ map: headTexture(look, castId), roughness: 0.55 });
-  part(P.head, GFX.sphere(R, 32, 22), headM, 0, HY, 0, hs);
-  for (const s of [-1, 1]) part(P.head, GFX.sphere(0.045, 10, 8), skinM, s * R * 0.88, HY - 0.01, -0.01, [0.45, 1, 0.75]);
-  part(P.head, GFX.sphere(0.03, 12, 10), skinM, 0, HY - 0.035, R * 0.93, [0.75, 1.25, 1.1]);
-  const style = look.hairStyle || 'short', jag = style === 'buzz' ? 0 : style === 'spiky' ? 1 : style === 'long' ? 0.25 : 0.6;
-  const capG = (k, tl) => hairGeo(R * k, 0, 2, 0, tl, style === 'cap' ? 0 : jag, 1);
+  // ---- head
+  P.head = pivot(P.torso, 0, 0.74, 0);
+  const HY = 0.2, hs = [0.88, 1.08, 0.98];
+  const headM = new THREE.MeshStandardMaterial({ map: headTexture(look, castId), roughness: 0.5 });
+  part(P.head, GFX.sphere(R, 36, 24), headM, 0, HY, 0, hs);
+  part(P.head, GFX.sphere(R * 0.62, 20, 14), skinM, 0, HY - R * 0.6, R * 0.32, [female ? 0.8 : 1.0, 0.62, 0.95]); // jaw
+  for (const s of [-1, 1]) part(P.head, GFX.sphere(0.042, 10, 8), skinM, s * R * 0.86, HY - 0.01, -0.01, [0.45, 1, 0.75]);
+  part(P.head, GFX.sphere(0.028, 12, 10), skinM, 0, HY - 0.035, R * 0.94, [0.75, 1.3, 1.1]);
+  const style = look.hairStyle || 'short', jag = style === 'buzz' || style === 'flattop' ? 0 : style === 'spiky' ? 1 : style === 'long' ? 0.25 : 0.6;
+  const capG = (k, tl) => hairGeo(R * k, 0, 2, 0, tl, jag, 1);
   const backG = k => hairGeo(R * k, 0.95, 1.1, 0.25, 0.42, jag, 2);
-  if (style === 'buzz') { part(P.head, capG(1.035, 0.5), hairM, 0, HY, 0, hs, [-0.22]); part(P.head, backG(1.03), hairM, 0, HY, 0, hs); }
-  else if (style !== 'hood') {
+  if (style === 'buzz' || style === 'flattop') {
+    part(P.head, capG(1.035, 0.5), hairM, 0, HY, 0, hs, [-0.22]); part(P.head, backG(1.03), hairM, 0, HY, 0, hs);
+    if (style === 'flattop') { part(P.head, GFX.rbox(0.33, 0.12, 0.32, 0.04), hairM, 0, HY + R * 0.9, -0.01, [hs[0] * 1.02, 1, hs[2]]); }
+  } else if (style !== 'hood') {
     part(P.head, capG(1.07, 0.5), hairM, 0, HY + 0.005, -0.01, hs, [-0.17]);
     part(P.head, backG(1.05), hairM, 0, HY, 0, hs);
   }
   if (style === 'spiky') {
     [[0, 0.2, -0.02, -0.4, 0], [0.11, 0.17, -0.05, -0.6, -0.6], [-0.11, 0.17, -0.05, -0.6, 0.6], [0.16, 0.08, -0.08, -1.1, -1.1],
-      [-0.16, 0.08, -0.08, -1.1, 1.1], [0, 0.1, -0.17, -1.6, 0], [0.07, 0.2, 0.08, 0.4, -0.4], [-0.07, 0.2, 0.08, 0.45, 0.45]]
-      .forEach(([x, y, z, rx, rz]) => part(P.head, cone(0.06, 0.22, 10), hairM, x, HY + y, z, 1, [rx, 0, rz]));
+      [-0.16, 0.08, -0.08, -1.1, 1.1], [0, 0.1, -0.17, -1.6, 0], [0.07, 0.2, 0.08, 0.5, -0.4], [-0.07, 0.2, 0.08, 0.55, 0.45], [0.03, 0.22, 0.03, 0.2, -0.1]]
+      .forEach(([x, y, z, rx, rz]) => part(P.head, cone(0.055, 0.2, 10), hairM, x, HY + y, z, 1, [rx, 0, rz]));
   } else if (style === 'long') {
     const len = look.hairLen || (dress ? 0.62 : 0.9), lm = GFX.mat(hairC, { tex: 'hair', rough: 0.45, side: THREE.DoubleSide });
-    part(P.head, new THREE.CylinderGeometry(R * 0.98, R * 1.3, len, 24, 4, true, Math.PI / 2, Math.PI), lm, 0, HY - len / 2 + 0.02, -0.02, [1, 1, 0.9]);
-    for (const s of [-1, 1]) part(P.head, GFX.rbox(0.05, len * 0.55, 0.05, 0.02), lm, s * R * 0.86, HY - len * 0.22, R * 0.35, 1, [0.05, 0, s * 0.08]);
+    part(P.head, shellGeo('longhair' + len, [[-len, 0.27], [-len * 0.5, 0.25], [0, 0.205], [0.06, 0.2]], { range: () => [Math.PI * 0.5, Math.PI * 1.5], rows: 14, seg: 24, dy: jagDy(-len, 0.04, 0.05, 13) }), lm, 0, HY, -0.02, [1, 1, 0.9]);
+    for (const s of [-1, 1]) part(P.head, GFX.rbox(0.05, len * 0.55, 0.05, 0.02), lm, s * R * 0.82, HY - len * 0.22, R * 0.38, 1, [0.05, 0, s * 0.08]);
   } else if (hood) {
-    const hm = cloth(hairC, { side: THREE.DoubleSide });
+    const hm = cloth(hairC, dbl);
     part(P.head, GFX.sphere(R * 1.3, 28, 18, Math.PI * 0.82, Math.PI * 1.36), hm, 0, HY + 0.02, -0.02, [1, 1.08, 1.05]);
     part(P.head, cone(0.12, 0.3, 14), hm, 0, HY + 0.08, -0.27, 1, [-2.1]);
   }
-  if (look.cap) {
-    const cm = cloth(look.cap);
-    part(P.head, GFX.sphere(R * 1.1, 32, 10, 0, Math.PI * 2, 0, Math.PI * 0.43), cm, 0, HY + 0.02, 0, hs, [-0.12]);
-    part(P.head, new THREE.CylinderGeometry(R * 0.95, R * 0.95, 0.018, 28, 1, false, -Math.PI / 2, Math.PI), cm, 0, HY + R * 0.42, R * 0.55, [1, 1, 1.3], [0.12]);
-    part(P.head, GFX.sphere(0.02, 8, 6), cm, 0, HY + R * 1.12, -0.02);
+  if (look.cap) { // baseball cap: crown, light front panel with an emblem, curved brim, button
+    const cm = cloth(look.cap), brimC = look.capBrim || look.cap;
+    part(P.head, GFX.sphere(R * 1.1, 36, 12, 0, Math.PI * 2, 0, Math.PI * 0.43), cm, 0, HY + 0.02, 0, hs, [-0.12]);
+    if (look.capPanel) part(P.head, GFX.sphere(R * 1.115, 16, 8, Math.PI * 0.32, Math.PI * 0.36, Math.PI * 0.12, Math.PI * 0.28), new THREE.MeshStandardMaterial({ map: capPanelTex(look.capPanel, look.capLogo || '#c02020'), roughness: 0.8 }), 0, HY + 0.02, 0, hs, [-0.12]);
+    const brim = new THREE.CylinderGeometry(R * 0.98, R * 0.98, 0.016, 32, 1, false, -Math.PI / 2, Math.PI);
+    part(P.head, brim, cloth(brimC), 0, HY + R * 0.4, R * 0.55, [1, 1, 1.35], [0.14]);
+    part(P.head, GFX.sphere(0.02, 8, 6), cm, 0, HY + R * 1.13, -0.02);
   }
   if (look.headband) {
-    const bm = cloth(look.headband, { side: THREE.DoubleSide });
-    part(P.head, new THREE.CylinderGeometry(R * 1.0, R * 1.0, 0.05, 32, 1, true), bm, 0, HY + 0.075, -0.005, [hs[0] * 1.06, 1, hs[2] * 1.06], [-0.15]);
-    for (const s of [-1, 1]) part(P.head, GFX.rbox(0.05, 0.3, 0.012, 0.005), bm, s * 0.04, HY - 0.06, -R * 1.02, 1, [0.25, 0, s * 0.25]);
+    const bm = cloth(look.headband, dbl);
+    part(P.head, new THREE.CylinderGeometry(R * 1.0, R * 1.0, 0.055, 36, 1, true), bm, 0, HY + 0.075, -0.005, [hs[0] * 1.07, 1, hs[2] * 1.07], [-0.15]);
+    part(P.head, GFX.sphere(0.035, 10, 8), bm, 0, HY + 0.06, -R * 1.02, [1.2, 0.8, 0.6]);
+    for (const s of [-1, 1]) part(P.head, GFX.rbox(0.05, look.bandTails || 0.3, 0.012, 0.005), bm, s * 0.04, HY - (look.bandTails || 0.3) * 0.45, -R * 1.04, 1, [0.25, 0, s * 0.25]);
   }
   if (look.glasses) {
     const gm = GFX.mat('#0a0a10', { rough: 0.08, metal: 0.6 });
-    for (const s of [-1, 1]) { part(P.head, GFX.sphere(0.058, 14, 10), gm, s * 0.075, HY + 0.01, R * 0.9, [1, 0.72, 0.32]); part(P.head, GFX.rbox(0.012, 0.012, 0.2, 0.005), gm, s * R * 0.9, HY + 0.02, R * 0.4); }
+    for (const s of [-1, 1]) { part(P.head, GFX.sphere(0.056, 14, 10), gm, s * 0.072, HY + 0.01, R * 0.9, [1, 0.72, 0.32]); part(P.head, GFX.rbox(0.012, 0.012, 0.2, 0.005), gm, s * R * 0.86, HY + 0.02, R * 0.4); }
     part(P.head, GFX.rbox(0.05, 0.012, 0.012, 0.005), gm, 0, HY + 0.025, R * 0.96);
   }
-  if (look.beard) part(P.head, GFX.blob(1, 0.2), cloth(look.beard), 0, HY - 0.13, R * 0.62, [0.14, 0.09, 0.08]);
+  if (look.beard) part(P.head, GFX.sphere(R * 0.66, 20, 14, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55), GFX.mat(look.beard, { tex: 'hair' }), 0, HY - R * 0.55, R * 0.36, [1.0, 0.7, 0.95]);
 
-  // arms
+  // ---- arms: muscle-shaped upper arm and forearm, deltoid, fists
   P.arms = [];
-  const armR = 0.076 * bulk, foreR = 0.064 * bulk;
-  const upperM = sleeveless || tee ? skinM : cloth(out), lowerM = sleeveless || tee ? skinM : cloth(out);
+  const ak = bulk * (female ? 0.82 : 1), upperM = bareArms ? skinM : cloth(over === 'jacket' ? out : bodyC, look.coat ? { tex: 'leather', rough: 0.5 } : {});
+  const gloveC = look.gloves || (job === 'brawler' ? '#1a1a1a' : null);
   [-1, 1].forEach((s, i) => {
-    const sh = pivot(P.torso, s * (0.245 + (bulk - 1) * 0.12), 0.565, 0);
-    part(sh, GFX.sphere(armR * 1.08, 14, 10), tee ? cloth(look.sleeve) : upperM, s * -0.01, -0.01, 0, [1, 1, 0.95]);
-    part(sh, GFX.capsule(armR, 0.31, armR * 0.88), upperM, 0, 0, 0);
-    if (tee) part(sh, GFX.capsule(armR * 1.2, 0.12, armR * 1.12), cloth(look.sleeve), 0, 0, 0);
-    const el = pivot(sh, 0, -0.33, 0);
-    const hand = pivot(el, 0, -0.31, 0);
-    if (i === 0 && look.gunArm) {
-      const met = GFX.mat('#a6acb6', { metal: 0.85, rough: 0.3, tex: 'metal' }), dark = GFX.mat('#3c3e44', { metal: 0.8, rough: 0.4 });
-      part(el, new THREE.CylinderGeometry(0.095, 0.085, 0.3, 18), met, 0, -0.15, 0);
-      for (const y of [-0.04, -0.27]) part(el, new THREE.CylinderGeometry(0.105, 0.105, 0.045, 18), dark, 0, y, 0);
-      for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; part(el, new THREE.CylinderGeometry(0.026, 0.026, 0.24, 10), dark, Math.cos(a) * 0.045, -0.4, Math.sin(a) * 0.045); }
-      part(el, new THREE.CylinderGeometry(0.08, 0.08, 0.03, 16), met, 0, -0.5, 0);
-    } else {
-      part(el, GFX.capsule(foreR, 0.26, foreR * 0.78), lowerM, 0, 0, 0);
-      const handM = job === 'brawler' ? GFX.mat('#7a2a1a', { rough: 0.5 }) : skinM, hk = job === 'brawler' ? 1.12 : 1;
-      part(hand, GFX.sphere(0.052 * hk, 14, 10), handM, 0, -0.03, 0.005, [1, 1.3, 0.72]);
-      part(hand, GFX.capsule(0.017, 0.05), skinM, -s * 0.035, -0.0, 0.03, 1, [0.4, 0, -s * 0.5]);
+    const sh = pivot(P.torso, s * (0.255 * bulk + 0.035), 0.565, 0);
+    part(sh, GFX.sphere(0.1 * ak, 18, 12), upperM, s * -0.012, 0.0, 0, [1, 1.0, 1.0]);
+    part(sh, limbG('upper', ak, female ? null : bulge(-0.13, 0.07, 0.018)), upperM, 0, 0, 0, [1, 1, 1.05]);
+    if (tee || (over === 'vest' && look.sleeve)) part(sh, shellGeo('sleeve' + ak + !!look.tornSleeve, [[-0.13, 0.098 * ak], [0, 0.11 * ak], [0.05, 0.1 * ak], [0.08, 0]], { rows: 6, seg: 20, dy: look.tornSleeve ? jagDy(-0.13, 0.02, 0.025, 8, 2) : null }), cloth(look.sleeve, dbl), 0, 0, 0);
+    if (look.shoulderPad && i === 1) {
+      const pm = GFX.mat(look.shoulderPad, { tex: 'leather', rough: 0.45 });
+      part(sh, GFX.sphere(0.14 * ak, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), pm, 0.01, 0.0, 0, [1.05, 0.9, 1.1], [0, 0, -0.35]);
+      for (let k = 0; k < 6; k++) part(sh, cone(0.025, 0.09, 10), GFX.mat('#b8bcc4', { metal: 0.9, rough: 0.3 }), 0.06 + Math.cos(k * 0.5 - 1.2) * 0.04, 0.09 + Math.sin(k * 0.5) * 0.02, -0.12 + k * 0.05, 1, [0, 0, -0.9]);
     }
-    if (job === 'monk') part(el, GFX.capsule(foreR * 1.12, 0.06), cloth('#c4201c'), 0, -0.19, 0);
+    const el = pivot(sh, 0, -0.32, 0);
+    const hand = pivot(el, 0, -0.3, 0);
+    if (i === 0 && look.gunArm) { // Gatling arm: housing, rings and a cluster of barrels
+      const met = GFX.mat('#a8aeb8', { metal: 0.85, rough: 0.28, tex: 'metal' }), dark = GFX.mat('#3c3e44', { metal: 0.85, rough: 0.35 });
+      part(el, new THREE.CylinderGeometry(0.13 * ak, 0.115 * ak, 0.34, 24), met, 0, -0.15, 0);
+      for (const y of [-0.02, -0.15, -0.3]) part(el, new THREE.CylinderGeometry(0.14 * ak, 0.14 * ak, 0.035, 24), dark, 0, y, 0);
+      for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; part(el, GFX.sphere(0.012, 6, 4), met, Math.cos(a) * 0.14 * ak, -0.15, Math.sin(a) * 0.14 * ak); }
+      for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; part(el, new THREE.CylinderGeometry(0.022, 0.022, 0.32, 12), met, Math.cos(a) * 0.065 * ak, -0.46, Math.sin(a) * 0.065 * ak); }
+      part(el, new THREE.CylinderGeometry(0.11 * ak, 0.11 * ak, 0.03, 24), dark, 0, -0.6, 0);
+      part(el, new THREE.CylinderGeometry(0.03, 0.03, 0.34, 12), dark, 0, -0.45, 0);
+      part(sh, shellGeo('strap' + ak, [[-0.26, 0.098 * ak], [-0.2, 0.1 * ak]], { rows: 1, seg: 20 }), GFX.mat('#3a2a1a', { tex: 'leather' }), 0, 0, 0);
+    } else {
+      part(el, limbG('fore', ak, female ? null : bulge(-0.08, 0.06, 0.012)), bareArms || over === 'gi' || over === 'tank' ? skinM : upperM, 0, 0, 0);
+      buildFist(hand, s, skinM, gloveC ? GFX.mat(gloveC, { tex: 'leather', rough: 0.4 }) : null, ak);
+    }
+    if (look.wraps) part(el, shellGeo('wrap' + ak, [[-0.3, 0.05 * ak], [-0.2, 0.06 * ak], [-0.16, 0.062 * ak]], { rows: 4, seg: 18, def: (y) => 0.004 * Math.abs(Math.sin(y * 120)) }), cloth(look.wraps), 0, 0, 0);
+    if (look.wristband && i === 1) part(el, shellGeo('wband' + ak, [[-0.29, 0.052 * ak], [-0.2, 0.06 * ak]], { rows: 2, seg: 18 }), GFX.mat('#1a1a1a', { tex: 'leather' }), 0, 0, 0);
+    if (gloveC && !(i === 0 && look.gunArm)) part(el, shellGeo('cuff' + ak, [[-0.3, 0.05 * ak], [-0.25, 0.054 * ak]], { rows: 2, seg: 18 }), GFX.mat(gloveC, { tex: 'leather', rough: 0.4 }), 0, 0, 0);
     P.arms.push({ sh, el, hand });
   });
-  // legs
+  // ---- legs
   P.legs = [];
-  const thR = (look.baggy ? 0.1 : 0.086) * bulk, shR = look.baggy ? 0.088 : 0.072;
+  const baggy = look.baggy, lk = bulk * (female ? 0.85 : 1);
   for (const s of [-1, 1]) {
-    const hip = pivot(P.hips, s * 0.1 * Math.sqrt(bulk), -0.05, 0);
-    part(hip, GFX.capsule(thR, 0.43, thR * 0.82), pantsM, 0, 0, 0);
-    const kn = pivot(hip, 0, -0.47, 0);
-    part(kn, GFX.capsule(shR, 0.38, shR * 0.75), pantsM, 0, 0, 0);
-    part(kn, GFX.sphere(0.07, 14, 10), bootM, 0, -0.44, 0.05, [1.05, 0.72, 1.9]);
-    if (bootM !== skinM) part(kn, GFX.rbox(0.14, 0.03, 0.27, 0.012), GFX.mat(shade(bootsC, -0.4), { rough: 0.7 }), 0, -0.485, 0.05);
+    const hip = pivot(P.hips, s * 0.105 * Math.sqrt(bulk), -0.05, 0);
+    part(hip, baggy ? limbG('baggyThigh', lk) : limbG('thigh', lk, bulge(-0.2, 0.12, 0.01)), pantsM, 0, 0, 0);
+    if (look.cargo) part(hip, GFX.rbox(0.03, 0.14, 0.13, 0.01), pantsM, s * 0.1 * lk, -0.26, 0.0);
+    const kn = pivot(hip, 0, -0.48, 0);
+    if (baggy) part(kn, shellGeo('bshin' + lk + !!look.tornHem, LIMB.baggyShin.map(([y, r]) => [y, r * lk]), { rows: 14, seg: 20, dy: look.tornHem ? jagDy(-0.43, 0.02, 0.04, 9, s) : null }), cloth(pantsC, dbl), 0, 0, 0);
+    part(kn, limbG('shin', lk, (y, p) => 0.012 * gauss(y + 0.17, 0.08) * Math.max(0, -Math.cos(p))), barefoot || dress ? skinM : pantsM, 0, 0, 0);
+    if (barefoot) { // bare foot with toes
+      part(kn, GFX.sphere(0.06, 14, 10), skinM, 0, -0.46, 0.05, [1.0, 0.62, 1.9]);
+      for (let t = 0; t < 5; t++) part(kn, GFX.sphere(0.016 - t * 0.0015, 8, 6), skinM, -s * (0.03 - t * 0.016), -0.485, 0.155 - t * 0.008);
+    } else {
+      part(kn, GFX.sphere(0.07, 16, 10), bootM, 0, -0.45, 0.05, [1.1, 0.75, 1.95]);
+      part(kn, GFX.rbox(0.15, 0.035, 0.29, 0.014), GFX.mat(shade(bootsC, -0.45), { rough: 0.7 }), 0, -0.49, 0.05);
+      if (!dress) part(kn, shellGeo('bootcuff' + lk, [[-0.47, 0.06], [-0.38, 0.058]], { rows: 2, seg: 18 }), bootM, 0, 0, 0);
+    }
     P.legs.push({ hip, kn });
   }
   if (look.weapon) addWeapon(P.arms[0].hand, look.weapon);
   root.userData = { P, kind: 'human', h: 2.2 };
   return root;
 }
+// a clenched fist: palm block, four curled fingers, thumb; fingerless gloves cover the palm only
+function buildFist(hand, s, skinM, gloveM, k) {
+  const pm = gloveM || skinM;
+  mesh(GFX.rbox(0.085 * k, 0.09, 0.05, 0.02), pm, 0, -0.04, 0.005, 1, hand);
+  for (let f = 0; f < 4; f++) { const x = (-0.03 + f * 0.02) * k; const fg = mesh(GFX.rbox(0.019 * k, 0.05, 0.034, 0.009), skinM, x, -0.088, 0.022, 1, hand); fg.rotation.x = 1.1; }
+  if (gloveM) mesh(GFX.rbox(0.088 * k, 0.025, 0.055, 0.01), gloveM, 0, -0.078, 0.008, 1, hand);
+  mesh(GFX.capsule(0.014, 0.045), skinM, -s * 0.045 * k, -0.04, 0.03, 1, hand).rotation.set(0.6, 0, -s * 0.7);
+}
+// the cap's light front panel with a generic flame emblem (no real logos)
+function capPanelTex(bg, ink) {
+  const key = 'cap' + bg + ink; if (GFX.tex[key]) return GFX.tex[key];
+  const c = mkCanvas(128, 96), g = c.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, 128, 96);
+  g.fillStyle = ink; g.strokeStyle = '#e8b030'; g.lineWidth = 3;
+  g.beginPath(); g.moveTo(30, 70); g.quadraticCurveTo(40, 30, 64, 18); g.quadraticCurveTo(56, 40, 70, 46); g.quadraticCurveTo(80, 30, 98, 26); g.quadraticCurveTo(84, 54, 92, 72); g.closePath(); g.fill(); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return (GFX.tex[key] = t);
+}
+
 function addWeapon(hand, kind) {
   const w = pivot(hand, 0, -0.03, 0); w.rotation.x = Math.PI / 2;
   const steel = GFX.mat('#e4e8f0', { metal: 0.95, rough: 0.18 }), gold = GFX.mat('#c8a040', { metal: 0.9, rough: 0.3 }), wrap = GFX.mat('#18181c', { tex: 'fabric' });
@@ -543,10 +700,13 @@ function lightScene(scene, st, key, span = 16) {
     sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03; sun.shadow.radius = 3;
   }
   scene.add(sun); scene.add(sun.target);
+  const rimL = new THREE.DirectionalLight(lin(st.dark ? '#8aa0ff' : '#cfe0ff'), st.dark ? 0.9 : 0.8); // back light that outlines the characters
+  rimL.position.copy(GFX.dirFrom(s[0] + 0.5, 0.5).multiplyScalar(30)); scene.add(rimL);
   for (const o of [scene]) o.userData.envI = st.env != null ? st.env : 1;
   return { pano, sun };
 }
 function buildStage(key, seed = 1) {
+  R3.sweep();
   const st = STAGES[key] || STAGES.grass, scene = new THREE.Scene(), r = mulberry32(hashStr(key) + seed);
   key = STAGES[key] ? key : 'grass';
   const { pano } = lightScene(scene, st, key);
@@ -662,6 +822,31 @@ function buildStage(key, seed = 1) {
       place(14, 14, 30, (x, z, s) => PROPS.column(r, 3 + r() * 3, r() < 0.4, st.ground[0]), true); place(12, 9, 30, (x, z, s) => PROPS.rock(r, st.ground[1], s * 0.8), true);
       break;
   }
+  // ---- extra detail: pebbles, set dressing and ambient particles per stage
+  const ringPt = (d0, d1, all) => () => { const a = all ? r() * 6.28 : Math.PI * 0.62 + r() * Math.PI * 1.55, d = d0 + r() * (d1 - d0), x = Math.sin(a) * d, z = Math.cos(a) * d; return st.sea && z < -12 ? null : [x, hgt(x, z), z]; };
+  if (!st.water) scene.add(GFX.pebbles(st.floor ? 90 : 170, st.pebble || mixHex(st.ground[0], '#a09a90', 0.3), ringPt(st.floor ? 11.5 : 3, 30, true), 0.08));
+  const put = (o, x, z, ry = r() * 6.28) => { o.position.set(x, hgt(x, z), z); o.rotation.y = ry; scene.add(o); return o; };
+  const parts = [];
+  switch (st.props) {
+    case 'pines': place(5, 12, 24, () => PROPS.stoneWall(r, 3 + Math.floor(r() * 3))); place(4, 10, 20, () => PROPS.log(r)); place(6, 10, 26, () => PROPS.agave(r)); break;
+    case 'forest': place(14, 8, 24, () => PROPS.mushroom(r), true); place(8, 9, 22, () => PROPS.log(r)); parts.push(GFX.particles(90, '#e0ff60', [-14, 14, 0.4, 3.5, -14, 10], 0.35, 0.012, true)); break;
+    case 'palms': place(6, 10, 22, () => PROPS.log(r)); place(5, 10, 20, () => PROPS.agave(r)); put(PROPS.parasol(r, '#e85a40'), -9, 4, 0); put(PROPS.lounger(r, '#3a7ad8'), -9.8, 5.2, 0.4); put(PROPS.lounger(r, '#f0f0f0'), -8, 5.6, 0.2); break;
+    case 'olives': place(7, 12, 26, () => PROPS.stoneWall(r, 4 + Math.floor(r() * 3))); place(10, 9, 26, () => PROPS.agave(r)); parts.push(GFX.particles(60, '#fff0c0', [-16, 16, 0.3, 4, -16, 12], 0.08, 0.006)); break;
+    case 'mesas': place(10, 9, 26, () => PROPS.agave(r)); parts.push(GFX.particles(80, '#ffd8a0', [-18, 18, 0.2, 4, -18, 12], 0.09, 0.008)); break;
+    case 'stalag': parts.push(GFX.particles(50, '#80e0ff', [-14, 14, 0.5, 5, -14, 10], 0.12, 0.006, true)); break;
+    case 'amphitheater':
+      for (const [x, z] of [[-8, -4], [8, -4], [-11, 3], [11, 3]]) put(PROPS.brazier(r), x, z, 0);
+      put(PROPS.statue(r), -15, -11, 0.5); put(PROPS.statue(r), 15, -11, -0.5);
+      parts.push(GFX.particles(60, '#ffb060', [-12, 12, 0.5, 5, -8, 6], 0.1, 0.01));
+      break;
+    case 'graves': for (const [x, z] of [[-9, -5], [9, -6], [-12, 4]]) put(PROPS.lantern(r), x, z); place(8, 9, 22, () => PROPS.mushroom(r), true); parts.push(GFX.particles(40, '#c8ffa0', [-16, 16, 0.4, 3, -16, 12], 0.18, 0.012, true)); break;
+    case 'villa': put(PROPS.lounger(r, '#2a6ab8'), -1.5, -8.5, 0); put(PROPS.lounger(r, '#f0f0f0'), 0.2, -8.5, 0); put(PROPS.parasol(r, '#f4f0e8'), -0.6, -9.6, 0); put(PROPS.lantern(r), 6.5, -10.5, 0); put(PROPS.lantern(r), -9, -10.5, 0); break;
+    case 'boat': for (let i = 0; i < 3; i++) put(PROPS.barrel(r), -1.8 + i * 0.75, 2.1, 0).position.y = 0.02; put(PROPS.crate(r), 3.3, 2.2).position.y = 0.02; break;
+    case 'pillars': for (const [x, z] of [[-7, -5], [7, -5]]) put(PROPS.brazier(r), x, z, 0); parts.push(GFX.particles(50, '#ffd080', [-14, 14, 0.5, 5, -12, 8], 0.1, 0.008)); break;
+  }
+  for (const pt of parts) { scene.add(pt); ticks.push(pt.userData.tick); }
+  const flames = []; scene.traverse(o => { if (o.userData.flame) flames.push(o); });
+  if (flames.length) ticks.push(t => flames.forEach((f, i) => { const k = 1 + Math.sin(t * 0.3 + i * 1.7) * 0.12 + Math.sin(t * 0.73 + i) * 0.06; f.scale.set(k, 1.1 + (k - 1) * 2, k); }));
   if (st.lamp) { const l = new THREE.PointLight(lin(st.lamp), st.lampI || 1.1, 18, 1.4); l.position.set(0.6, 4, 4); scene.add(l); }
   if (st.env != null) scene.traverse(o => { if (o.material && o.material.isMeshStandardMaterial && !o.userData.sky) o.material.envMapIntensity = st.env; });
   scene.userData.tick = t => { for (const f of ticks) f(t); };
@@ -673,7 +858,7 @@ function stageCamera() { return new THREE.PerspectiveCamera(42, SW / SH, 0.1, 40
 // Merged geometry per texture bucket (vertex-coloured, planar UVs); dynamic things are separate meshes.
 const BUCKET = {
   plain: {}, grass: { tex: 'grass', s: 0.5 }, sand: { tex: 'sand', s: 0.5 }, dirt: { tex: 'dirt', s: 0.5 }, rock: { tex: 'rock', s: 0.45, rough: 0.95 },
-  cobble: { tex: 'cobble', s: 0.7 }, plaster: { tex: 'plaster', s: 0.6, rough: 0.95 }, stone: { tex: 'stone', s: 0.7 }, wood: { tex: 'wood', s: 1.2, rough: 0.8 },
+  cobble: { tex: 'cobble', s: 1.15 }, plaster: { tex: 'plaster', s: 0.6, rough: 0.95 }, stone: { tex: 'stone', s: 0.7 }, wood: { tex: 'wood', s: 1.2, rough: 0.8 },
   leaves: { tex: 'leaves', s: 1, rough: 0.8 }, bark: { tex: 'bark', s: 1 }, roof: { tex: 'roof', s: 1 }, frond: { tex: 'frond', s: 1, alpha: true, side: THREE.DoubleSide },
   glass: { rough: 0.1, metal: 0.4 }
 };
@@ -748,6 +933,7 @@ const DUNGEON_TEX = { woods: ['grass', 'leaves', 'woods'], cave: ['rock', 'rock'
   shrine: ['stone', 'stone', 'shrine'], ruins: ['dirt', 'stone', 'canyon'], rift: ['rock', 'rock', 'rift'], ice: ['plain', 'plain', 'shrine'] };
 const TOWN_TEX = { town_old: 'grass', town_harbor: 'cobble', town_olive: 'dirt', town_port: 'sand' };
 function buildMap3D(map) {
+  R3.sweep();
   const B = new GeoBuilder(), scene = new THREE.Scene(), th = map.theme, W = map.w, H = map.h;
   const r = mulberry32(hashStr(map.id + 'x'));
   const dyn = { water: [], crystals: [], portals: [], chests: [], lava: [] };
@@ -808,6 +994,9 @@ function buildMap3D(map) {
       if (t === 'tflower') { B.geo(GFX.blob(Math.floor(r() * 4), 0.3), cx, 0.12, cz, [0.32, 0.16, 0.32], 0, '#3a7a30', 'leaves'); for (let i = 0; i < 6; i++) B.geo(GFX.sphere(0.05, 6, 4), x + 0.2 + r() * 0.6, 0.25, y + 0.2 + r() * 0.6, 1, 0, pick2(r, tt.flowers)); }
       if (t === 'counter') { B.use('wood').box(x, 0, y + 0.15, x + 1, 0.55, y + 0.85, '#b07a4a', '#7a4a2a'); B.box(x - 0.02, 0.55, y + 0.1, x + 1.02, 0.6, y + 0.9, '#c08a5a', '#8a5a3a'); B.use('plain'); }
       if (t === 'fountain') { B.use('stone'); B.box(x + 0.05, 0, y + 0.05, x + 0.95, 0.3, y + 0.95, '#c0c0c8', '#a0a0aa'); B.geo(new THREE.CylinderGeometry(0.08, 0.12, 0.6, 12), cx, 0.6, cz, 1, 0, '#d0d0d8', 'stone'); B.geo(new THREE.CylinderGeometry(0.25, 0.15, 0.08, 16), cx, 0.85, cz, 1, 0, '#d0d0d8', 'stone'); B.use('plain'); waterTiles.push([x, y, 0.28, 0.12]); }
+      if (t === 'tpath' && (x * 7 + y * 13) % 17 === 0 && T(x + 1, y) !== 'tpath') { const lx = x + 0.92, lz = y + 0.5; B.geo(new THREE.CylinderGeometry(0.025, 0.035, 1.5, 8), lx, 0.75, lz, 1, 0, '#2a2a2e'); B.geo(GFX.rbox(0.14, 0.18, 0.14, 0.02), lx, 1.55, lz, 1, 0, '#ffe0a0'); B.geo(new THREE.ConeGeometry(0.12, 0.1, 4), lx, 1.69, lz, 1, Math.PI / 4, '#2a2a2e'); }
+      if (t === 'counter' && r() < 0.5) { B.geo(GFX.lathe('barrel', [[0, 0], [0.28, 0], [0.33, 0.4], [0.28, 0.8], [0, 0.8]], 14), x + 0.5, 0, y - 0.35, 0.5, 0, '#8a5a32', 'wood'); B.use('wood').box(x + 0.6, 0, y + 0.95, x + 0.95, 0.35, y + 1.3, '#a07a4a', '#8a6a3a'); B.use('plain'); }
+      if (gt !== 'grass' && t !== 'tpath' && t !== 'counter' && t !== 'fountain' && t !== 'sign' && t !== 'well' && r() < 0.03) B.geo(GFX.blob(12, 0.35, 1), x + 0.5, 0.02, y + 0.5, [0.1, 0.06, 0.08], r() * 6, '#a09a90', 'rock');
       if (t === 'sign') { B.use('wood'); B.box(cx - 0.04, 0, cz - 0.04, cx + 0.04, 0.6, cz + 0.04, '#5a3a1a', '#5a3a1a'); B.box(cx - 0.3, 0.45, cz - 0.05, cx + 0.3, 0.75, cz + 0.05, '#b07a4a', '#8a5a2a'); B.use('plain'); }
       if (t === 'well') { B.use('stone'); B.geo(new THREE.CylinderGeometry(0.32, 0.34, 0.4, 16), cx, 0.2, cz, 1, 0, '#a0a0a8', 'stone'); B.use('wood'); B.box(x + 0.2, 0.4, y + 0.45, x + 0.25, 1.0, y + 0.55, '#5a3a1a', '#5a3a1a'); B.box(x + 0.75, 0.4, y + 0.45, x + 0.8, 1.0, y + 0.55, '#5a3a1a', '#5a3a1a'); B.use('roof'); B.prism(x + 0.1, y + 0.25, x + 0.9, y + 0.75, 1.0, 0.25, '#b05a3a'); B.use('plain'); }
       continue;
@@ -867,6 +1056,13 @@ function buildMap3D(map) {
             if (r() < 0.5) B.geo(GFX.blob(Math.floor(r() * 4), 0.4), xx + 0.5, 0.78, fz + 0.12, [0.2, 0.08, 0.08], 0, r() < 0.5 ? '#d8448a' : '#e05a30', 'leaves');
           }
           if (ft === 'roof' && (xx * 7 + y1) % 4 === 0) { B.use('wood').box(xx + 0.32, 1.15, fz, xx + 0.68, 1.5, fz + 0.04, door, door); B.use('plain'); }
+        }
+        for (let xx = x; xx <= x1; xx++) { // street life along the front wall
+          const ft = T(xx, y1), below = T(xx, y1 + 1); if (ft === 'door' || !['tground', 'tflower', 'tpath'].includes(below)) continue;
+          const v = r(), px = xx + 0.5, pz = fz + 0.2;
+          if (v < 0.25) { B.geo(GFX.lathe('pot', [[0, 0], [0.09, 0], [0.12, 0.1], [0.13, 0.2], [0.1, 0.24]], 12), px - 0.25, 0, pz, 1.3, 0, '#b8603a', 'plaster'); B.geo(GFX.blob(Math.floor(r() * 4), 0.35), px - 0.25, 0.4, pz, 0.18, 0, r() < 0.5 ? '#3a7a30' : '#c02a7a', 'leaves'); }
+          else if (v < 0.4) { B.use('wood'); B.box(px - 0.4, 0.22, pz - 0.05, px + 0.4, 0.27, pz + 0.12, '#8a5a32', '#6a4a2a'); B.box(px - 0.4, 0.27, pz - 0.08, px + 0.4, 0.5, pz - 0.04, '#8a5a32', '#6a4a2a'); for (const d of [-0.35, 0.35]) B.box(px + d - 0.03, 0, pz - 0.02, px + d + 0.03, 0.22, pz + 0.1, '#3a3a3a', '#2a2a2a'); B.use('plain'); }
+          else if (v < 0.5) { B.geo(GFX.lathe('barrel', [[0, 0], [0.28, 0], [0.33, 0.4], [0.28, 0.8], [0, 0.8]], 14), px + 0.2, 0, pz, 0.45, 0, '#8a5a32', 'wood'); B.geo(GFX.lathe('barrel', [[0, 0], [0.28, 0], [0.33, 0.4], [0.28, 0.8], [0, 0.8]], 14), px - 0.1, 0, pz + 0.05, 0.45, 0, '#7a4a2a', 'wood'); }
         }
         if ((x * 5 + y) % 3 === 0) { // bougainvillea spilling over a corner
           const cxb = (x * 7 + y) % 2 ? x + 0.1 : x1 + 0.9;
