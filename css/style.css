@@ -3,7 +3,7 @@ body { display: flex; flex-direction: column; align-items: center; justify-conte
 #wrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; width: 100%; overflow: hidden; }
 #screen { position: relative; }
 #screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-#gl { image-rendering: pixelated; image-rendering: crisp-edges; }
+#gl { image-rendering: auto; }
 #help { font-size: 12px; padding: 6px; text-align: center; }
 #touch { display: none; flex: none; width: 100%; max-width: 520px; height: 170px; position: relative; user-select: none; -webkit-user-select: none; }
 #touch button { position: absolute; background: rgba(60, 70, 140, 0.55); color: #dde; border: 2px solid #aab; border-radius: 10px;

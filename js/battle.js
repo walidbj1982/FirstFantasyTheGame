@@ -625,7 +625,7 @@ class BattleView {
   constructor(b) {
     this.b = b; this.scene = buildStage(b.bg, b.enemies.length);
     const still = b.opts.scene && Img.get(CONFIG.scenes[b.opts.scene]);
-    if (still) { const tex = new THREE.Texture(still); tex.needsUpdate = true; this.scene.background = tex; this.scene.children[0].visible = false; this.scene.fog = null; }
+    if (still) { const tex = new THREE.Texture(still); tex.encoding = THREE.sRGBEncoding; tex.needsUpdate = true; this.scene.background = tex; this.scene.children[0].visible = false; this.scene.fog = null; }
     this.cam = stageCamera(); this.ang = 3.2; this.rad = 6; this.hgt = 6; this.look = new THREE.Vector3(-0.5, 0.9, 0);
     this.cam.setViewOffset(SW, SH, 0, 40, SW, SH); // centre the action above the command panel
   }
@@ -664,8 +664,8 @@ class BattleView {
       this.anchor(e, m, m.userData.h * 0.5);
     }
     // camera: spin-in at the start, nudges toward whoever acts, swings round for the victory pose
-    let ang = 0.5, rad = 13.5, hgt = 5.4, look = [0, 0.7, -0.6];
-    if (b.state === 'intro' || b.t < 70) { const k = Math.min(1, b.t / 70), e = 1 - Math.pow(1 - k, 3); ang = 0.5 + 2.7 * (1 - e); rad = 7 + 5.5 * e; hgt = 7 - 2 * e; }
+    let ang = 0.5, rad = 13.0, hgt = 4.0, look = [0, 1.15, -0.6];
+    if (b.state === 'intro' || b.t < 70) { const k = Math.min(1, b.t / 70), e = 1 - Math.pow(1 - k, 3); ang = 0.5 + 2.7 * (1 - e); rad = 7 + 6 * e; hgt = 7 - 3 * e; }
     else if (b.state === 'victory') { ang = 2.95; rad = 9.5; hgt = 2.6; look = [0.6, 1.9, 3.0]; }
     else if (b.busy && b.acting) {
       const a = b.acting, ax = a.model ? a.model.position.x : 0;

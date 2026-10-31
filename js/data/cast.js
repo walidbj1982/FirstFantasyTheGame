@@ -8,7 +8,8 @@
 //  look      : colours of the 3D model. Optional costume parts:
 //              cap, headband (colours), glasses (true), dress (colour),
 //              sleeveless (true), sleeve (t-shirt sleeve colour), gunArm (true),
-//              weapon ('katana'), hairStyle: 'short' | 'long' | 'spiky' | 'hood' | 'buzz'
+//              weapon ('katana'), coat (true), vneck (true), baggy (true), bulk (1.2 = muscular),
+//              hairLen, hairStyle: 'short' | 'long' | 'spiky' | 'hood' | 'buzz'
 //  portrait  : photo of the actor (square, e.g. 128x128)
 //  voice     : synthesised talk blip when there is no recorded clip
 //  clips     : voice lines cut from the movie (tools/cut_audio.sh)
@@ -33,7 +34,7 @@ window.CAST = {
     name: 'Ryu', actor: 'Actor (Ryu)', job: 'monk', title: 'The Wandering Fighter',
     burstName: 'Dragon Wave',
     look: { skin: '#b9845a', hair: '#141010', hairStyle: 'short', headband: '#c4201c', outfit: '#f2f2ee', outfit2: '#dcdcd6',
-            sleeveless: true, accent: '#1a1a1a', pants: '#f2f2ee', boots: '#b9845a', eyes: '#1a1010' },
+            sleeveless: true, vneck: true, baggy: true, accent: '#1a1a1a', pants: '#f2f2ee', boots: '#b9845a', eyes: '#1a1010' },
     voice: { pitch: 175, wave: 'triangle' },
     portrait: 'assets/portraits/ryu.png',
     clips: {},
@@ -42,7 +43,7 @@ window.CAST = {
   hero3: {
     name: 'Barret', actor: 'Actor (Barret)', job: 'gunner', title: 'The Gun-Arm',
     burstName: 'Heavy Barrage',
-    look: { skin: '#c69466', hair: '#1a1410', hairStyle: 'buzz', outfit: '#4a5638', outfit2: '#3a4430', sleeveless: true,
+    look: { skin: '#c69466', hair: '#1a1410', hairStyle: 'buzz', bulk: 1.2, stubble: true, outfit: '#4a5638', outfit2: '#3a4430', sleeveless: true,
             gunArm: true, accent: '#6a5a3a', pants: '#3a3a36', boots: '#2a2420', eyes: '#1a1010' },
     voice: { pitch: 105, wave: 'sawtooth' },
     portrait: 'assets/portraits/barret.png',
@@ -54,7 +55,7 @@ window.CAST = {
   villain1: {
     name: 'Sephiroth', actor: 'Actor (Sephiroth)', title: 'Seeker of the Pendant',
     look: { skin: '#d8c0b0', hair: '#e8dce4', hairStyle: 'long', outfit: '#141414', outfit2: '#222226', accent: '#8a8a90',
-            pants: '#141414', boots: '#0a0a0a', eyes: '#50ff90', weapon: 'katana' },
+            pants: '#141414', boots: '#0a0a0a', eyes: '#50ff90', fierce: true, weapon: 'katana', coat: true, hairLen: 1.0 },
     voice: { pitch: 90, wave: 'sawtooth' },
     portrait: 'assets/portraits/sephiroth.png',
     clips: {},

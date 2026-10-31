@@ -6,6 +6,11 @@ window.CONFIG = {
   subtitle: 'The Pendant',
   credits: 'Based on the movie by Walid Ben Jemia & friends',
 
+  // 3D quality: 'high' (sharp, soft shadows) or 'low' (for older phones).
+  graphics: 'high',
+  // Put the actors' portrait photos onto the 3D faces (works best with sharp, front-facing photos).
+  photoFaces: false,
+
   // Places from the movie. Rename freely.
   places: {
     world: 'The Coast',

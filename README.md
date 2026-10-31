@@ -42,12 +42,16 @@ The game saves to the browser (3 slots). Save on the world map, at blue crystals
 
 ## What's in the game
 
-- **Late-90s 3D style:** low-poly characters with chunky limbs and textured faces, real-time
-  3D battles with a camera that spins in and follows the action, a 3D world map, towns and
-  dungeons. The 3D is rendered at low resolution with PlayStation-style vertex wobble, under
-  blue gradient menu windows. Dialogue portraits are rendered from each character's 3D model,
-  or use the actor's photo when you add one.
-
+- **HD 3D graphics in the spirit of FF7:** smooth, detailed character models (costumes, hair,
+  painted faces, Barret's gun-arm, Sephiroth's coat and katana), real-time battles with soft shadows,
+  painted sky panoramas (Mediterranean villages, sea horizons, canyon mesas, the starry night forest),
+  sky-lit materials and generated textures (grass, sand, cobblestones, whitewash, ancient stone,
+  wood, water). The scenery is filled with umbrella pines, cypresses, olive trees, palms,
+  bougainvillea and swaying grass. All of it is generated in code, so the game stays a single small file.
+  Set `graphics: 'low'` in `js/data/config.js` for older phones.
+- **Faces:** the 3D models get painted faces in each actor's colours, and the actors' real photos
+  appear in dialogue, menus, the battle bar and the cast screen. With sharp, front-facing photos,
+  `photoFaces: true` in `config.js` puts the photos on the 3D heads too.
 - **Length:** five chapters, four towns, six dungeons (25 floors). A first run should take roughly
   4–6 hours. That's an estimate from encounter rates and the level curve, not a timed playthrough.
   The optional shrine and superboss add more. To lengthen it, raise `floors` (and add `loot` rows)
@@ -129,7 +133,8 @@ stats are in `js/data/enemies.js` (`boss_*`), and monsters per area are in `ZONE
 ```
 index.html            page + touch controls
 js/engine.js          canvas, input, audio synth, scene stack
-js/render3d.js        3D layer: PS1-style renderer, low-poly characters/monsters, battle & cutscene stages, 3D maps
+js/gfx.js             procedural textures, painted sky panoramas, smooth geometry, trees and props
+js/render3d.js        3D layer: HD renderer, characters/monsters, battle & cutscene stages, 3D maps
 js/sprites.js         map tile definitions and 2D fallback art (used if WebGL is unavailable)
 js/vendor/three.min.js  three.js r128 (MIT, see three.LICENSE)
 js/field.js           map exploration, NPCs, chests, encounters, event-script API (Ev)
