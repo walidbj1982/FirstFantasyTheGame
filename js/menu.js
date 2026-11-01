@@ -313,7 +313,6 @@ class TitleScene {
     win(110, 166, 100, 54);
     this.opts.forEach((o, i) => txt(o, 132, 172 + i * 15, i === 1 && !anySave() ? '#808090' : '#fff'));
     cursor(116, 172 + this.i * 15);
-    txt(CONFIG.credits || '', SW / 2, 226, '#c0c0d0', 'center', 9);
   }
 }
 class CastScene {
