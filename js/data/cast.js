@@ -25,10 +25,10 @@ window.CAST = {
   hero1: {
     name: 'Terry Bogard', actor: 'Actor (Terry)', job: 'brawler', title: 'The Lone Wolf',
     burstName: 'Lone Wolf Rush',
-    look: { skin: '#d8a47a', hair: '#2a1c12', hairStyle: 'short', cap: '#b02a24', capPanel: '#f0ece4', capLogo: '#c82a20', outfit: '#a8221e', outfit2: '#7a1814',
-            vest: true, shirt: '#f2f2ee', sleeve: '#f2f2ee', tornSleeve: true, gloves: '#161616', bulk: 1.15, accent: '#2a2a2a', pants: '#3a5888', boots: '#5a3a20', eyes: '#2a3a50' },
+    look: { skin: '#d8a47a', hair: '#2a1c12', hairStyle: 'short', cap: '#ece8e2', capBrim: '#c8443c', capPanel: '#d04a40', capLogo: '#f4f0ea', outfit: '#c8423a', outfit2: '#9a2e28',
+            vest: true, shirt: '#f2f2ee', gloves: '#161616', bulk: 1.15, accent: '#2a2a2a', pants: '#7a9cc8', boots: '#5a3a20', eyes: '#2a3a50' },
     voice: { pitch: 150, wave: 'square' },
-    portrait: 'assets/portraits/terry.png',
+    portrait: 'assets/portraits/terry.png', // from assets/reference/terry.png (the movie still you sent)
     clips: {},
     bio: 'Visits his father\'s grave and remembers the night the Pendant was stolen. Leads the journey to take it back.'
   },

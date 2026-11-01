@@ -309,7 +309,8 @@ const Music = {
       this.el = new Audio(file); this.el.loop = name !== 'victory'; this.el.volume = Sound.vol.music;
       this.el.play().catch(() => {}); return;
     }
-    const tr = window.TRACKS && TRACKS[name]; if (!tr) return;
+    const tr = typeof TRACKS !== 'undefined' && TRACKS[name]; // TRACKS is a top-level const in js/data/music.js, not a window property
+    if (!tr) { this.name = null; return; }
     const mk = (p, intro) => ({ ...p, seq: p.kit ? parseKit(p.kit) : parseNotes(p.n), i: 0, next: 0, intro });
     this.cur = { tr, chans: [...(tr.intro || []).map(p => mk(p, true)), ...tr.parts.map(p => mk(p, false))] };
     this.resume();
