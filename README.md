@@ -50,7 +50,12 @@ The game saves to the browser (3 slots). Save on the world map, at blue crystals
   sky-lit materials and generated textures (grass, sand, cobblestones, whitewash, ancient stone,
   wood, water, leather). The scenery is filled with umbrella pines, cypresses, olive trees, palms,
   bougainvillea, grass, dry-stone walls, agaves, driftwood, lanterns, braziers, statues, loungers and
-  barrels, with fireflies, dust and embers in the air. All of it is generated in code, so the game stays a single small file.
+  barrels, with fireflies, dust and embers in the air.
+- **World map and villages:** a sculpted landscape blending meadows, dry grass, beaches and rock, with
+  organic coastlines, turquoise shallows, animated surf and drifting cloud shadows. Lighthouses, windmills,
+  chapels, sailing boats and gulls dot the coast. Villages have market stalls with striped awnings and
+  fruit, strings of lights, a church with a bell tower, and houses climbing the hills or a harbour beyond
+  the square. Grass, leaves and palm fronds sway in the wind. All of it is generated in code, so the game stays a single small file.
   Set `graphics: 'low'` in `js/data/config.js` for older phones.
 - **Faces:** the 3D models get painted faces in each actor's colours, and the actors' real photos
   appear in dialogue, menus, the battle bar and the cast screen. With sharp, front-facing photos,
@@ -143,6 +148,7 @@ stats are in `js/data/enemies.js` (`boss_*`), and monsters per area are in `ZONE
 index.html            page + touch controls
 js/engine.js          canvas, input, sound effects, the synthesised orchestra, scene stack
 js/gfx.js             procedural textures, painted sky panoramas, smooth geometry, trees and props
+js/terrain.js         blended terrain, sea and surf, wind, landmarks (lighthouse, windmill, chapel, boats, gulls)
 js/render3d.js        3D layer: HD renderer, characters/monsters, battle & cutscene stages, 3D maps
 js/sprites.js         map tile definitions and 2D fallback art (used if WebGL is unavailable)
 js/vendor/three.min.js  three.js r128 (MIT, see three.LICENSE)

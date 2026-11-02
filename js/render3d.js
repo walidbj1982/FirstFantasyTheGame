@@ -33,6 +33,7 @@ const R3 = {
     if (!this.ok) return;
     if (G.shake > 0) { camera.position.x += rand(-0.08, 0.08); camera.position.y += rand(-0.05, 0.05); }
     (this.seen || (this.seen = new Map())).set(scene, G.frame);
+    GFX.time.value = performance.now() / 1000;
     const ud = scene.userData; if (ud.tick) ud.tick(G.frame);
     if (ud.sky) ud.sky.position.copy(camera.position);
     this.renderer.render(scene, camera); this.used = true;
@@ -658,17 +659,17 @@ const STAGES = {
     layers: [['mountains', '#5a6a8a', 0.2], ['hills', '#55783e', 0.06, '#2a5aa8']], sun: [0.15, 0.95, '#fff6d8', 12] },
   night: { sky: ['#03040f', '#1a2344'], haze: '#141a30', ground: ['#2a3a2c', '#34463a', '#2a3428'], tex: 'grass', tuft: '#34503a', props: 'pines', stars: true, moon: true, clouds: 0.25, cloudCol: [70, 80, 110],
     layers: [['mountains', '#1a2238', 0.18], ['hills', '#121a24', 0.06]], sun: [0.18, 0.75, '#e8ecff', 9], light: '#a8b8ff', li: 0.9, hemi: 0.35, env: 0.5, dark: true },
-  woods: { sky: ['#01030a', '#0e1824'], haze: '#0c1520', ground: ['#1e2a18', '#2a3420', '#18200f'], tex: 'dirt', tuft: '#2a3a20', props: 'forest', stars: true, fog: [6, 34],
+  woods: { sky: ['#01030a', '#0e1824'], haze: '#0c1520', ground: ['#1e2a18', '#2a3420', '#18200f'], tex: 'dirt', tex2: 'grass', tuft: '#2a3a20', props: 'forest', stars: true, fog: [6, 34],
     layers: [['treeline', '#030605']], sun: [0.2, 0.9, '#c0c8e0', 4], light: '#9aaee0', li: 1.1, hemi: 0.5, env: 0.5, dark: true, night: true, lamp: '#ffe0b0', lampI: 2.2 },
   beach: { sky: ['#1f6ad0', '#d4ecfb'], haze: '#d6e8f4', ground: ['#e6d2a0', '#dcc490', '#efe0b6'], tex: 'sand', props: 'palms', sea: true, clouds: 0.45,
     layers: [['sea', '#2d6fb8'], ['islands', '#5a7a5a'], ['hills', '#6a8a4a', 0.04, '#2a5aa8']], sun: [0.15, 1.0, '#fff8e0', 12] },
-  scrub: { sky: ['#3c86dc', '#f2e6c4'], haze: '#eadfc2', ground: ['#c2a05a', '#b0904c', '#d2b46e'], tex: 'dirt', tuft: '#b8a060', props: 'olives', clouds: 0.3,
+  scrub: { sky: ['#3c86dc', '#f2e6c4'], haze: '#eadfc2', ground: ['#c2a05a', '#b0904c', '#d2b46e'], tex: 'dirt', tex2: 'grass', tuft: '#b8a060', props: 'olives', clouds: 0.3,
     layers: [['mountains', '#8a7a6a', 0.16], ['hills', '#9a8858', 0.06, '#2a6ab0']], sun: [0.15, 1.05, '#fff4d0', 12], li: 2.5 },
   canyon: { sky: ['#c06a38', '#f8d8a0'], haze: '#f0c690', ground: ['#c07848', '#b06838', '#cf8a5a'], tex: 'dirt', props: 'mesas', clouds: 0.3, cloudCol: [255, 220, 190], rim: 9,
     layers: [['mesas', '#a85a34']], sun: [0.3, 0.45, '#ffe0a0', 14], light: '#ffd8a8', li: 2.3 },
   cave: { sky: ['#05080c', '#1a2836'], haze: '#0e161e', ground: ['#3a4652', '#2c3640', '#465260'], tex: 'rock', props: 'stalag', fog: [8, 40],
     layers: [['cave']], light: '#a8c8ff', li: 0.7, hemi: 0.3, env: 0.4, dark: true, lamp: '#a0e0ff' },
-  island: { sky: ['#1668dc', '#d4f0ff'], haze: '#d4ecfa', ground: ['#d8c088', '#8ab04a', '#c8b078'], tex: 'sand', tuft: '#8ab04a', props: 'palms', sea: true, clouds: 0.55,
+  island: { sky: ['#1668dc', '#d4f0ff'], haze: '#d4ecfa', ground: ['#d8c088', '#8ab04a', '#c8b078'], tex: 'sand', tex2: 'grass', tuft: '#8ab04a', props: 'palms', sea: true, clouds: 0.55,
     layers: [['sea', '#2378c8'], ['islands', '#4a7a4a']], sun: [0.15, 1.0, '#fff8e0', 12] },
   theater: { sky: ['#5a3a7a', '#f6b07a'], haze: '#f0bc90', ground: ['#d8c49a', '#c8b48a', '#e2d0a6'], tex: 'dirt', floor: 'stone', props: 'amphitheater', clouds: 0.5, cloudCol: [255, 200, 170],
     layers: [['hills', '#7a5a4a', 0.07], ['ruins', '#8a6a5a']], sun: [0.32, 0.3, '#ffd090', 16], light: '#ffc890', li: 2.2 },
@@ -724,15 +725,19 @@ function buildStage(key, seed = 1) {
   };
   if (!st.water) {
     const size = 150, seg = 110, geo = new THREE.PlaneGeometry(size, size, seg, seg); geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position, uv = geo.attributes.uv, gc = st.ground.map(lin), cols = [], tmp = new THREE.Color();
+    const pos = geo.attributes.position, uv = geo.attributes.uv, gc = st.ground.map(lin), cols = [], spl = [], tmp = new THREE.Color();
     for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = pos.getZ(i); pos.setY(i, hgt(x, z));
+      const x = pos.getX(i), z = pos.getZ(i), h = hgt(x, z), d = Math.hypot(x, z); pos.setY(i, h);
+      // worn patches of a second ground texture, trodden earth in the arena, bare rock on the slopes
+      const w2 = smooth(0.5, 0.72, fbm(x * 0.11 + 80, z * 0.11 + 80, 4096, 3, 4)) + (st.floor || st.sea ? 0 : smooth(9, 2, d) * 0.55), w3 = smooth(1.2, 3.5, h) + smooth(0.62, 0.8, fbm(x * 0.2 + 20, z * 0.2 + 20, 4096, 2, 6)) * 0.6;
+      spl.push(1, w2, w3);
       const a = fbm(x * 0.07 + 30, z * 0.07 + 30, 4096, 3, 1), b = fbm(x * 0.15 + 60, z * 0.15 + 60, 4096, 2, 2);
       tmp.copy(gc[0]).lerp(gc[1 % gc.length], smooth(0.35, 0.65, a)).lerp(gc[2 % gc.length], smooth(0.55, 0.8, b) * 0.7);
       cols.push(tmp.r, tmp.g, tmp.b); uv.setXY(i, x / 4, z / 4);
     }
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); geo.computeVertexNormals();
-    const gm = new THREE.Mesh(geo, GFX.mat('#ffffff', { vc: true, tex: st.tex || 'grass' })); gm.receiveShadow = true; scene.add(gm);
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); geo.setAttribute('splat', new THREE.Float32BufferAttribute(spl, 3)); geo.computeVertexNormals();
+    const t0 = st.tex || 'grass', t1 = st.tex2 || { grass: 'dirt', sand: 'dirt', dirt: 'sand', rock: 'dirt', cobble: 'dirt', stone: 'rock' }[t0] || 'dirt';
+    const gm = new THREE.Mesh(geo, GFX.splatMat([t0, t1, 'rock'], [1, 1.2, 0.8], !st.dark)); gm.receiveShadow = true; scene.add(gm);
   }
   if (st.floor) { // paved arena
     const f = new THREE.Mesh(new THREE.CircleGeometry(10.5, 64), GFX.mat('#d8c8a8', { tex: st.floor, repeat: [5, 5] })); f.rotation.x = -Math.PI / 2; f.position.y = 0.03; f.receiveShadow = true; scene.add(f);
@@ -845,6 +850,19 @@ function buildStage(key, seed = 1) {
     case 'boat': for (let i = 0; i < 3; i++) put(PROPS.barrel(r), -1.8 + i * 0.75, 2.1, 0).position.y = 0.02; put(PROPS.crate(r), 3.3, 2.2).position.y = 0.02; break;
     case 'pillars': for (const [x, z] of [[-7, -5], [7, -5]]) put(PROPS.brazier(r), x, z, 0); parts.push(GFX.particles(50, '#ffd080', [-14, 14, 0.5, 5, -12, 8], 0.1, 0.008)); break;
   }
+  // a landmark on the horizon and birds overhead
+  const far = (o, x, z, s, ry = 0) => { o.position.set(x, st.sea && z < -12 ? -0.3 : hgt(x, z), z); o.scale.setScalar(s); o.rotation.y = ry; castShadows(o); scene.add(o); return o; };
+  const spinners = [];
+  switch (key) {
+    case 'grass': far(PROPS.chapel(r), -22, -44, 2.2, 0.4); spinners.push(far(PROPS.windmill(r), 26, -40, 2.0, -0.4)); break;
+    case 'scrub': spinners.push(far(PROPS.windmill(r), -18, -42, 2.1, 0.3), far(PROPS.windmill(r), -8, -48, 2.1, 0.1), far(PROPS.windmill(r), 20, -44, 2.1, -0.3)); break;
+    case 'beach': case 'island': case 'day': far(PROPS.lighthouse(r), 28, -46, 2.4, 0); for (const [x, z] of [[-18, -40], [6, -55]]) { const b = far(PROPS.sailboat(r), x, z, 2.0, r() * 6); ticks.push(t => { b.position.y = -0.3 + Math.sin(t * 0.04 + x) * 0.08; b.rotation.z = Math.sin(t * 0.03 + x) * 0.05; }); } break;
+    case 'sea': far(PROPS.lighthouse(r), -34, -66, 3, 0); for (const [x, z] of [[24, -38], [40, -60]]) far(PROPS.sailboat(r), x, z, 2.2, r() * 6).position.y = 0; break;
+    case 'canyon': far(PROPS.arch(r), -26, -48, 2.0, 0.3); break;
+    case 'graveyard': far(PROPS.chapel(r, '#3a4a6a'), 20, -32, 1.8, -0.5); break;
+  }
+  if (spinners.length) ticks.push(t => spinners.forEach((m, i) => m.traverse(o => { if (o.userData.spin) o.rotation.z = t * 0.015 + i; })));
+  if (!st.dark && st.props !== 'stalag') { const gl = GFX.gulls(st.sea || st.water ? 7 : 4, -4, 9, -18, 9, r); if (!st.sea && !st.water) gl.traverse(o => { if (o.material) o.material = GFX.mat('#3a3430', { side: THREE.DoubleSide }); }); scene.add(gl); ticks.push(gl.userData.tick); }
   for (const pt of parts) { scene.add(pt); ticks.push(pt.userData.tick); }
   const flames = []; scene.traverse(o => { if (o.userData.flame) flames.push(o); });
   if (flames.length) ticks.push(t => flames.forEach((f, i) => { const k = 1 + Math.sin(t * 0.3 + i * 1.7) * 0.12 + Math.sin(t * 0.73 + i) * 0.06; f.scale.set(k, 1.1 + (k - 1) * 2, k); }));
@@ -912,7 +930,8 @@ class GeoBuilder {
       g.setAttribute('position', new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(B.n, 3));
       g.setAttribute('color', new THREE.Float32BufferAttribute(B.c, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(B.uv, 2));
       const o = BUCKET[k] || {}, m = new THREE.Mesh(g, GFX.mat('#ffffff', { vc: true, tex: o.tex, rough: o.rough, metal: o.metal, alpha: o.alpha, side: o.side }));
-      m.castShadow = k !== 'plain' || true; m.receiveShadow = true; scene.add(m);
+      if (k === 'leaves') GFX.windify(m.material, 0.012); if (k === 'frond') GFX.windify(m.material, 0.03);
+      m.castShadow = true; m.receiveShadow = true; scene.add(m);
     }
   }
 }
@@ -952,7 +971,7 @@ function buildMap3D(map) {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = T(x, y), cx = x + 0.5, cz = y + 0.5;
     if (t === 'water' || t === 'dwater' || t === 'brokenbridge' || t === 'bridgeH' || t === 'bridgeV') {
-      waterTiles.push([x, y]); B.use('sand').floor(x, y, -0.3, '#7a8a70'); B.use('plain');
+      if (map.type !== 'world') { waterTiles.push([x, y]); B.use('sand').floor(x, y, -0.3, '#7a8a70'); B.use('plain'); }
       if (t === 'bridgeH') { B.use('wood').box(x, -0.05, y + 0.2, x + 1, 0.06, y + 0.8, '#9a6a3a', '#6a4a2a'); for (const z of [y + 0.22, y + 0.78]) B.box(x + 0.45, -0.3, z - 0.04, x + 0.55, 0.3, z + 0.04, '#6a4a2a', '#5a3a1a'); B.use('plain'); }
       if (t === 'bridgeV') { B.use('wood').box(x + 0.2, -0.05, y, x + 0.8, 0.06, y + 1, '#9a6a3a', '#6a4a2a'); B.use('plain'); }
       if (t === 'brokenbridge') { B.use('wood'); B.box(x + 0.15, -0.3, y + 0.1, x + 0.3, 0.2, y + 0.25, '#5a3a1a', '#5a3a1a'); B.box(x + 0.6, -0.3, y + 0.7, x + 0.75, 0.15, y + 0.85, '#5a3a1a', '#5a3a1a'); B.use('plain'); }
@@ -988,10 +1007,9 @@ function buildMap3D(map) {
     }
     if (map.type === 'town') {
       const tt = map.theme, gt = TOWN_TEX[tt.id] || 'cobble';
-      if (t === 'ttree') { B.use(gt).floor(x, y, 0, tt.ground); B.use('plain'); if (tt.med && (x + y) % 2) cypress(cx, cz, 1.5); else if (tt.med) olive(cx, cz, 1.5); else tree(cx, cz, 1.6, tt.leaf); continue; }
-      if (t === 'roof' || t === 'wall' || t === 'window' || t === 'door') { B.use(gt).floor(x, y, 0, tt.ground); B.use('plain'); continue; } // buildings added below
-      if (t === 'tpath') { B.use('cobble').floor(x, y, 0.005, '#d0c0a0'); B.use('plain'); }
-      else { B.use(gt).floor(x, y, 0, t === 'counter' || t === 'fountain' ? '#c8b090' : jitter(tt.ground, 0.05)); B.use('plain'); if (gt === 'grass' && t !== 'counter' && t !== 'fountain') tufts.push([cx, cz, shade(tt.ground, 0.1)]); }
+      if (t === 'ttree') { if (tt.med && (x + y) % 2) cypress(cx, cz, 1.5); else if (tt.med) olive(cx, cz, 1.5); else tree(cx, cz, 1.6, tt.leaf); continue; }
+      if (t === 'roof' || t === 'wall' || t === 'window' || t === 'door') continue; // buildings added below (the ground is the terrain mesh)
+      if (t !== 'tpath' && gt === 'grass' && t !== 'counter' && t !== 'fountain') tufts.push([cx, cz, shade(tt.ground, 0.1)]);
       if (t === 'tflower') { B.geo(GFX.blob(Math.floor(r() * 4), 0.3), cx, 0.12, cz, [0.32, 0.16, 0.32], 0, '#3a7a30', 'leaves'); for (let i = 0; i < 6; i++) B.geo(GFX.sphere(0.05, 6, 4), x + 0.2 + r() * 0.6, 0.25, y + 0.2 + r() * 0.6, 1, 0, pick2(r, tt.flowers)); }
       if (t === 'counter') { B.use('wood').box(x, 0, y + 0.15, x + 1, 0.55, y + 0.85, '#b07a4a', '#7a4a2a'); B.box(x - 0.02, 0.55, y + 0.1, x + 1.02, 0.6, y + 0.9, '#c08a5a', '#8a5a3a'); B.use('plain'); }
       if (t === 'fountain') { B.use('stone'); B.box(x + 0.05, 0, y + 0.05, x + 0.95, 0.3, y + 0.95, '#c0c0c8', '#a0a0aa'); B.geo(new THREE.CylinderGeometry(0.08, 0.12, 0.6, 12), cx, 0.6, cz, 1, 0, '#d0d0d8', 'stone'); B.geo(new THREE.CylinderGeometry(0.25, 0.15, 0.08, 16), cx, 0.85, cz, 1, 0, '#d0d0d8', 'stone'); B.use('plain'); waterTiles.push([x, y, 0.28, 0.12]); }
@@ -1004,7 +1022,6 @@ function buildMap3D(map) {
     }
     // world map
     const base = FLOOR_COL[t] || '#5a9a3a', ft = FLOOR_TEX[t] || 'grass';
-    B.use(ft).floor(x, y, 0, jitter(base, 0.05)); B.use('plain');
     if (ft === 'grass' && !MOUNTAIN[t]) tufts.push([cx, cz, shade(base, 0.12)]);
     if (MOUNTAIN[t]) { const [mc, cap] = MOUNTAIN[t], hgt = 1.1 + r() * 0.9; B.geo(GFX.peak(Math.floor(r() * 4)), cx + (r() - 0.5) * 0.2, 0, cz + (r() - 0.5) * 0.2, [0.75, hgt, 0.75], r() * 6, mc, 'rock'); B.geo(GFX.peak(Math.floor(r() * 4) + 4), cx + (r() - 0.5) * 0.3, 0, cz + (r() - 0.5) * 0.3, [0.45, hgt * 0.65, 0.45], r() * 6, cap, 'rock'); }
     else if (t === 'forest') { umbrella(x + 0.3, y + 0.35, 1); tree(x + 0.72, y + 0.7, 0.9, '#2a5e26'); }
@@ -1099,6 +1116,8 @@ function buildMap3D(map) {
     else if (l.id === 'dungeon1') { for (let i = 0; i < 5; i++) tree(cx + (r() - 0.5) * 0.7, cz + (r() - 0.5) * 0.5, 1.3, '#1e4a22'); B.box(cx - 0.12, 0, cz + 0.32, cx + 0.12, 0.3, cz + 0.36, '#050505', '#050505'); }
     else { B.geo(GFX.peak(3), cx, 0, cz - 0.1, [0.6, 0.9, 0.6], 0, '#8a8478', 'rock'); B.box(cx - 0.15, 0, cz + 0.32, cx + 0.15, 0.35, cz + 0.36, '#050505', '#050505'); }
   }
+  if (map.type === 'world') worldScenery(map, scene, B, r, dyn);
+  if (map.type === 'town') townScenery(map, scene, B, r, dyn);
   B.meshes(scene);
   // grass tufts on grassy tiles
   if (tufts.length) {
@@ -1138,6 +1157,137 @@ function buildMap3D(map) {
   return { scene, dyn };
 }
 
+// ------------------------------------------------------------------ world map scenery
+// A sculpted landscape under the tiles: grass, dry grass, sand and rock blended smoothly,
+// organic coastlines with beaches, a sea with shallows and foam, and landmarks around the coast.
+const WCLASS = { grass: 'grass', flowers: 'grass', forest: 'forest', tree: 'grass', snow: 'dry', snowtree: 'dry', sand: 'sand', dune: 'sand', cactus: 'sand',
+  waste: 'sand', road: 'dirt', boulder: 'dirt', mountain: 'rock', smountain: 'rock', dmountain: 'rock', wmountain: 'rock', riftwall: 'dirt', lightbridge: 'dirt' };
+const WSPLAT = { grass: [[1, 0, 0], '#5c9838'], forest: [[0.85, 0, 0.15], '#3e7a2c'], dry: [[0.7, 0.05, 0.25], '#c2a458'], sand: [[0, 1, 0], '#e2cc94'],
+  dirt: [[0.1, 0.25, 0.65], '#b89a70'], rock: [[0.15, 0, 0.85], '#9a8a6a'], water: [[0, 1, 0], '#cdbb8e'] };
+function tileField(W, H, get) { // bilinear sampling of per-tile values at tile centres
+  return (x, z, out) => {
+    const fx = clamp(x - 0.5, -1, W), fz = clamp(z - 0.5, -1, H), i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j;
+    const a = get(i, j), b = get(i + 1, j), c = get(i, j + 1), d = get(i + 1, j + 1);
+    if (typeof a === 'number') return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v;
+    for (let k = 0; k < out.length; k++) out[k] = (a[k] * (1 - u) + b[k] * u) * (1 - v) + (c[k] * (1 - u) + d[k] * u) * v;
+    return out;
+  };
+}
+const nz2 = (x, z, f = 1, s = 0) => fbm(x * f + 300, z * f + 300, 4096, 2, s);
+function worldScenery(map, scene, B, r, dyn) {
+  const W = map.w, H = map.h, T = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? 'water' : map.tiles[y * W + x];
+  const cls = (x, y) => { const t = T(x, y); if (/^(water|dwater|brokenbridge|bridge)/.test(t)) return 'water'; return WCLASS[t] || (/^town|^cave|shrine/.test(t) ? (regionGround(worldZone(x, y)) === 'snow' ? 'dry' : regionGround(worldZone(x, y)) === 'sand' || regionGround(worldZone(x, y)) === 'waste' ? 'sand' : 'grass') : 'grass'); };
+  const C = []; for (let y = -1; y <= H; y++) for (let x = -1; x <= W; x++) C[(y + 1) * (W + 2) + x + 1] = cls(x, y);
+  const cAt = (i, j) => C[(clamp(j, -1, H) + 1) * (W + 2) + clamp(i, -1, W) + 1];
+  const vec = {}; for (const k in WSPLAT) { const c = lin(WSPLAT[k][1]); vec[k] = [...WSPLAT[k][0], c.r, c.g, c.b, k === 'water' ? 0 : 1, k === 'rock' ? 1 : 0]; }
+  const field = tileField(W, H, (i, j) => vec[cAt(i, j)]), tmp = new Array(8).fill(0);
+  const landAt = (x, z) => { field(x, z, tmp); return tmp[6] + (nz2(x, z, 0.7, 3) - 0.5) * 0.45 * (1 - Math.abs(tmp[6] - 0.5) * 2); };
+  const sand = vec.sand, col = new THREE.Color();
+  const sample = (x, z) => {
+    field(x, z, tmp); const L = tmp[6] + (nz2(x, z, 0.7, 3) - 0.5) * 0.45 * (1 - Math.abs(tmp[6] - 0.5) * 2), rock = tmp[7];
+    let h = L > 0.55 ? (nz2(x, z, 0.9, 5) - 0.5) * 0.06 + rock * 0.25 : -0.7 + 0.7 * smooth(0.2, 0.55, L);
+    const beach = smooth(0.85, 0.55, L) * (1 - rock); // sandy band along the coast
+    const s = [tmp[0], tmp[1], tmp[2]].map((v, k) => v + (sand[k] - v) * beach);
+    col.setRGB(tmp[3], tmp[4], tmp[5]).lerp(new THREE.Color(sand[3], sand[4], sand[5]), beach);
+    const mead = nz2(x, z, 0.09, 9), dryp = nz2(x, z, 0.21, 11); // meadows: darker lush hollows and sun-dried patches
+    col.multiplyScalar(0.78 + mead * 0.4).lerp(lin('#b8a85a'), smooth(0.6, 0.85, dryp) * 0.35 * tmp[0]);
+    return { h, s, c: col };
+  };
+  scene.add(GFX.terrain(-1, -1, W + 1, H + 1, 3, sample, GFX.splatMat(['grass', 'sand', 'rock'], [1, 1.2, 0.8], true)));
+  const sea = GFX.sea(-40, -40, W + 40, H + 40, 1.5, (x, z) => (x < -0.5 || z < -0.5 || x > W + 0.5 || z > H + 0.5) ? 0 : landAt(x, z));
+  scene.add(sea);
+  // landmarks
+  const land = (x, y) => cls(x, y) !== 'water' && cls(x, y) !== 'rock', far = (list, x, y, d) => list.every(([a, b]) => Math.hypot(a - x, b - y) >= d);
+  const busy = (x, y) => map.locs.some(l => Math.abs(l.x - x) + Math.abs(l.y - y) < 4) || map.gates.some(g => Math.abs(g.x - x) + Math.abs(g.y - y) < 4);
+  const put = (o, x, y, s, ry = r() * 6.28) => { o.position.set(x + 0.5, 0, y + 0.5); o.scale.setScalar(s); o.rotation.y = ry; castShadows(o); scene.add(o); return o; };
+  const coastal = [], dryspots = [], sea0 = [];
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    if (land(x, y) && !busy(x, y)) { let w = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (cls(x + dx, y + dy) === 'water') w++; if (w >= 4) coastal.push([x, y]); }
+    if (cls(x, y) === 'dry' && !busy(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => cls(x + dx, y + dy) === 'rock')) dryspots.push([x, y]);
+    let open = true; for (let dy = -3; dy <= 3 && open; dy++) for (let dx = -3; dx <= 3; dx++) if (cls(x + dx, y + dy) !== 'water') { open = false; break; }
+    if (open) sea0.push([x, y]);
+  }
+  const pick = (list, n, d) => { const out = []; for (let k = 0; k < 400 && out.length < n && list.length; k++) { const p = list[Math.floor(r() * list.length)]; if (far(out, p[0], p[1], d)) out.push(p); } return out; };
+  const ticks = dyn.ticks = dyn.ticks || [];
+  for (const [x, y] of pick(coastal, 3, 18)) { put(PROPS.lighthouse(r), x, y, 0.32); const gl = GFX.gulls(5, x + 0.5, 2.6, y + 0.5, 1.6, r); gl.scale.setScalar(1); scene.add(gl); ticks.push(gl.userData.tick); }
+  const mills = []; for (const [x, y] of pick(dryspots, 4, 6)) mills.push(put(PROPS.windmill(r), x, y, 0.3, Math.PI * 0.1));
+  ticks.push(t => mills.forEach((m, i) => m.traverse(o => { if (o.userData.spin) o.rotation.z = t * 0.02 + i; })));
+  const boats = pick(sea0, 7, 8).map(([x, y]) => { const b = put(PROPS.sailboat(r), x, y, 0.3); b.position.y = -0.12; return b; });
+  ticks.push(t => boats.forEach((b, i) => { const k = b.userData.bob; b.position.y = -0.12 + Math.sin(t * 0.04 + k) * 0.03; b.rotation.z = Math.sin(t * 0.03 + k) * 0.06; b.rotation.x = Math.sin(t * 0.025 + k * 2) * 0.04; }));
+  for (const l of map.locs) if (/^town/.test(l.id)) { // a chapel beside every village
+    for (const [dx, dy] of [[2, -1], [-2, -1], [2, 1], [-2, 1]]) { const x = l.x + dx, y = l.y + dy; if (land(x, y) && T(x, y) !== 'road') { put(PROPS.chapel(r), x, y, 0.16, 0); break; } }
+  }
+}
+
+// ------------------------------------------------------------------ village scenery
+// The ground is one blended surface (paving, grass, dirt). The village continues beyond the
+// playable square: more houses on the slopes, a church with a bell tower, windmills, and the
+// sea with a lighthouse and boats for the harbour towns. Market stalls get striped awnings.
+function townScenery(map, scene, B, r, dyn) {
+  const W = map.w, H = map.h, th = map.theme, gt = TOWN_TEX[th.id] || 'cobble', seaSide = th.id === 'town_harbor' || th.id === 'town_port';
+  const T = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? 'out' : map.tiles[y * W + x];
+  const g0 = lin(th.ground), gPath = lin('#dcccb0'), gDirt = lin(mixHex(th.ground, '#8a7a5a', 0.5));
+  const vecOf = t => t === 'tpath' ? [0, 1, 0, gPath] : t === 'ttree' || t === 'out' ? [0.45, 0, 0.55, gDirt] : (t === 'counter' || t === 'fountain' || t === 'well' || t === 'sign') ? [0.2, 0.8, 0, gPath] : [1, 0, 0, g0];
+  const V = []; for (let y = -1; y <= H; y++) for (let x = -1; x <= W; x++) { const v = vecOf(T(x, y)); V.push([v[0], v[1], v[2], v[3].r, v[3].g, v[3].b]); }
+  const field = tileField(W, H, (i, j) => V[(clamp(j, -1, H) + 1) * (W + 2) + clamp(i, -1, W) + 1]), tmp = new Array(6).fill(0), col = new THREE.Color();
+  const outside = (x, z) => Math.max(0, -z, z - H, -x, x - W);
+  const coastZ = -9 + (nz2(0, 0) - 0.5) * 2;
+  const landAt = (x, z) => seaSide ? smooth(coastZ - 1.5, coastZ + 1.5, z + (nz2(x, z, 0.3, 4) - 0.5) * 3) : 1;
+  const hAt = (x, z) => { const o = outside(x, z), L = landAt(x, z); if (L < 1) return -0.7 + 0.7 * smooth(0.2, 0.6, L) + (seaSide ? 0 : 0); return smooth(1, 12, o) * (seaSide ? 1.2 : 3.2) * (0.6 + nz2(x, z, 0.15, 6) * 0.8); };
+  const sample = (x, z) => {
+    field(x, z, tmp); const L = landAt(x, z), beach = seaSide ? smooth(0.95, 0.6, L) : 0;
+    const s = [tmp[0] * (1 - beach), tmp[1] * (1 - beach), tmp[2] * (1 - beach) + beach];
+    col.setRGB(tmp[3], tmp[4], tmp[5]).lerp(lin('#d8c08a'), beach).multiplyScalar(0.9 + nz2(x, z, 0.2, 9) * 0.2);
+    return { h: hAt(x, z), s, c: col };
+  };
+  scene.add(GFX.terrain(-18, -26, W + 18, H + 6, 2, sample, GFX.splatMat([gt, 'cobble', 'dirt'], [gt === 'cobble' ? 2 : 1.4, 2, 1.2], false)));
+  if (seaSide) scene.add(GFX.sea(-60, -80, W + 60, -2, 1.2, (x, z) => landAt(x, z)));
+  const ticks = dyn.ticks = dyn.ticks || [], put = (o, x, z, s = 1, ry = 0) => { o.position.set(x, hAt(x, z), z); o.scale.setScalar(s); o.rotation.y = ry; castShadows(o); scene.add(o); return o; };
+  // houses beyond the edges (merged into the map mesh)
+  const wall = th.wall, door = th.door || '#2a6ab8';
+  const house = (x, z, w, d, hh) => {
+    const y = hAt(x, z) - 0.2;
+    B.use('plaster'); B.box(x - w / 2, y, z - d / 2, x + w / 2, y + hh, z + d / 2, wall, shade(wall, -0.04));
+    B.box(x - w / 2 - 0.02, y + hh, z - d / 2 - 0.02, x + w / 2 + 0.02, y + hh + 0.15, z + d / 2 + 0.02, wall, wall);
+    if (r() < 0.5) { B.box(x - w / 4, y + hh, z - d / 4, x + w / 4 + 0.2, y + hh + 0.9, z + d / 4, wall, shade(wall, -0.04)); }
+    B.use('wood'); B.box(x - 0.2, y, z + d / 2, x + 0.2, y + 0.95, z + d / 2 + 0.04, door, door);
+    for (const s of [-1, 1]) if (w > 1.4) B.box(x + s * w / 3 - 0.18, y + 0.9, z + d / 2, x + s * w / 3 + 0.18, y + 1.35, z + d / 2 + 0.04, door, door);
+    B.use('plain'); if (r() < 0.3) B.geo(GFX.sphere(0.45, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2), x, y + hh + 0.15, z, 1, 0, door);
+  };
+  const spots = [];
+  for (let k = 0; k < 60; k++) {
+    const side = k % 3, x = side === 0 ? -3 - r() * 13 : side === 1 ? W + 3 + r() * 13 : -4 + r() * (W + 8), z = side === 2 ? (seaSide ? -4.5 - r() * 2 : -4 - r() * 18) : -14 + r() * (H + 12);
+    if (seaSide && landAt(x, z) < 1) continue;
+    if (spots.some(([a, b]) => Math.abs(a - x) < 2.4 && Math.abs(b - z) < 2.2)) continue;
+    spots.push([x, z]); house(x, z, 1.4 + r() * 1.6, 1.4 + r(), 1.5 + r() * 1.5);
+  }
+  for (let k = 0; k < 40; k++) { const x = -16 + r() * (W + 32), z = -24 + r() * (H + 26); if (outside(x, z) < 1.5 || (seaSide && landAt(x, z) < 1) || spots.some(([a, b]) => Math.hypot(a - x, b - z) < 1.6)) continue; const y = hAt(x, z); if (r() < 0.55) B.geo(GFX.blob(k % 4, 0.12), x, y + 1.2, z, [0.32, 1.25, 0.32], 0, '#24462a', 'leaves'); else { B.geo(GFX.trunk(0.1, 0.07, 0.8, 0.1), x, y, z, 1, 0, '#7a6a50', 'bark'); B.geo(GFX.blob(k % 4 + 2, 0.3), x, y + 1.1, z, [0.6, 0.45, 0.6], r() * 6, '#7a8a56', 'leaves'); } }
+  put(PROPS.chapel(r, door), W / 2 + 0.5, seaSide ? -4.5 : -5.5, 0.9, 0);
+  if (!seaSide) { const mills = [put(PROPS.windmill(r), -6, -9, 0.9, 0.3), put(PROPS.windmill(r), W + 6, -10, 0.9, -0.3)]; ticks.push(t => mills.forEach((m, i) => m.traverse(o => { if (o.userData.spin) o.rotation.z = t * 0.02 + i; }))); }
+  else {
+    put(PROPS.lighthouse(r), W + 8, coastZ - 1, 0.9, 0).position.y = -0.2;
+    const boats = [[-4, -16], [8, -20], [20, -15], [30, -24]].map(([x, z]) => { const b = put(PROPS.sailboat(r), x, z, 0.9, r() * 6); b.position.y = -0.12; return b; });
+    ticks.push(t => boats.forEach(b => { const k = b.userData.bob; b.position.y = -0.12 + Math.sin(t * 0.04 + k) * 0.05; b.rotation.z = Math.sin(t * 0.03 + k) * 0.06; }));
+    const gl = GFX.gulls(6, W / 2, 6, -10, 7, r); scene.add(gl); ticks.push(gl.userData.tick);
+  }
+  // market stalls over the counters
+  const awn = ['#2a6ab8', '#c83a30', '#3a8a4a', '#d8a020'];
+  let si = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (T(x, y) === 'counter' && T(x - 1, y) !== 'counter') {
+    let x1 = x; while (T(x1 + 1, y) === 'counter') x1++;
+    const st = PROPS.stall(r, awn[si++ % awn.length]); st.position.set((x + x1 + 1) / 2, 0, y + 0.5); st.scale.set((x1 - x + 1) / 2.6, 0.95, 0.75); castShadows(st); scene.add(st);
+  }
+  // strings of lights across the square
+  const bulbs = [];
+  for (const [ax, az, bx, bz] of [[6.6, 4.95, 17.4, 4.95], [6.6, 11.95, 17.4, 11.95]]) {
+    const pts = []; for (let i = 0; i <= 24; i++) { const k = i / 24, x = ax + (bx - ax) * k, z = az + (bz - az) * k, y = 2.5 - Math.sin(k * Math.PI) * 0.45; pts.push(new THREE.Vector3(x, y, z)); if (i % 2) bulbs.push([x, y - 0.06, z]); }
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: lin('#2a2a2a') })));
+  }
+  const bm = new THREE.InstancedMesh(GFX.sphere(0.05, 8, 6), new THREE.MeshBasicMaterial({ color: lin('#ffd890') }), bulbs.length), o = new THREE.Object3D();
+  bulbs.forEach(([x, y, z], i) => { o.position.set(x, y, z); o.updateMatrix(); bm.setMatrixAt(i, o.matrix); bm.setColorAt(i, lin(['#ffd890', '#ff9a6a', '#a0d8ff', '#fff0a0'][i % 4])); });
+  scene.add(bm);
+}
+
 // Field renderer: holds the 3D version of the current map and the people on it.
 const Field3D = {
   map: null, scene: null, cam: null, people: new Map(),
@@ -1146,7 +1296,7 @@ const Field3D = {
     if (this.map !== m || this.gateKey !== this.gates(m)) {
       this.map = m; this.gateKey = this.gates(m);
       const built = buildMap3D(m); this.scene = built.scene; this.dyn = built.dyn; this.people = new Map(); this.boss = null;
-      this.cam = new THREE.PerspectiveCamera(m.type === 'world' ? 45 : 40, SW / SH, 0.1, 80);
+      this.cam = new THREE.PerspectiveCamera(m.type === 'world' ? 45 : 40, SW / SH, 0.1, 400);
       this.camPos = null;
     }
   },
@@ -1192,9 +1342,10 @@ const Field3D = {
     if (d.waterMat) d.waterMat.map.offset.set(t * 0.0008, t * 0.0004);
     for (const c of d.chests) c.lid.rotation.x = S.flags[c.o.key] ? -1.9 : 0;
     if (d.torch) d.torch.position.set(px, 1.6, pz + 0.3);
+    if (d.ticks) for (const f of d.ticks) f(t);
     if (d.sun) { d.sun.position.set(px + d.sunOff.x, d.sunOff.y, pz + d.sunOff.z); d.sun.target.position.set(px, 0, pz); d.sun.target.updateMatrixWorld(); }
     // camera: FF-style fixed angle that follows the player
-    const off = m.type === 'world' ? [0, 10, 8] : m.type === 'town' ? [0, 7.5, 6.5] : [0, 8.5, 4.2];
+    const off = m.type === 'world' ? [0, 9.5, 8.5] : m.type === 'town' ? [0, 8.2, 10.5] : [0, 8.5, 4.2];
     const want = new THREE.Vector3(px + off[0], off[1], pz + off[2]);
     if (m.type !== 'world') { want.x = clamp(want.x, 5.5, Math.max(5.5, m.w - 5.5)); want.z = clamp(want.z, off[2] + 3, Math.max(off[2] + 3, m.h + off[2] - 4.2)); }
     if (!this.camPos) this.camPos = want.clone(); else this.camPos.lerp(want, 0.15);
